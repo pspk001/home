@@ -1,0 +1,121 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <meta name="description" content="Interactive 3D model of a 35′-5″ × 49′-9″ house: textured rooms, dollhouse cut-away, plan view and walk-through." />
+    <title>3D Home Viewer</title>
+    <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Crect width='24' height='24' rx='5' fill='%23161b22'/%3E%3Cpath d='M4 12 12 5l8 7v7h-5v-5H9v5H4z' fill='%23f2b84b'/%3E%3C/svg%3E" />
+  </head>
+  <body data-view="exterior">
+    <div id="stage" aria-label="3D view of the house"></div>
+
+    <div id="loader" role="status" aria-live="polite">
+      <div class="loader-card">
+        <div class="spinner" aria-hidden="true"></div>
+        <p class="loader-title">3D Home Viewer</p>
+        <p id="loader-msg">Preparing textures…</p>
+      </div>
+    </div>
+
+    <header class="brand">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 11.5 12 4l9 7.5V20a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z" /></svg>
+      <div>
+        <h1>3D Home Viewer</h1>
+        <p>35′-5″ × 49′-9″ plot · Ground floor + elevation</p>
+      </div>
+    </header>
+
+    <aside id="panel" aria-label="Viewer controls">
+      <button id="panel-toggle" class="sheet-handle" type="button" aria-expanded="false" aria-controls="panel-more">
+        <span></span><em>Controls</em>
+      </button>
+      <div class="seg" role="group" aria-label="View mode">
+        <button type="button" data-view="exterior" aria-pressed="true">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 20V10l8-6 8 6v10h-6v-5h-4v5z" /></svg>Exterior
+        </button>
+        <button type="button" data-view="dollhouse" aria-pressed="false">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 8l9-5 9 5v8l-9 5-9-5zM12 13v8M3 8l9 5 9-5" /></svg>Dollhouse
+        </button>
+        <button type="button" data-view="plan" aria-pressed="false">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 4h16v16H4zM4 12h7v8M11 4v5M14 12h6" /></svg>Plan
+        </button>
+        <button type="button" data-view="walk" aria-pressed="false">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="13" cy="4.5" r="2" /><path d="M10 21l2-6 3 3v3M9 11l2-3 4 1 2 3M11 8l-1 5 2 2" /></svg>Walk
+        </button>
+      </div>
+
+      <section class="rooms">
+        <h2>Rooms</h2>
+        <div id="room-list" class="room-list"></div>
+      </section>
+
+      <div id="panel-more" class="more">
+        <section class="angles" aria-label="Camera angle">
+          <span>Angle</span>
+          <button type="button" data-angle="front">Front</button>
+          <button type="button" data-angle="left">Left</button>
+          <button type="button" data-angle="back">Back</button>
+          <button type="button" data-angle="right">Right</button>
+          <button type="button" data-angle="top">Top</button>
+        </section>
+        <section class="ctl ctl-cut">
+          <label for="cut">Wall cut <output id="cut-val">Full house</output></label>
+          <input id="cut" type="range" min="1" max="32" step="0.25" value="32" />
+        </section>
+        <section class="ctl">
+          <label for="sun">Sun <output id="sun-val">3:30 PM</output></label>
+          <input id="sun" type="range" min="7" max="18.5" step="0.25" value="15.5" />
+        </section>
+        <section class="toggles">
+          <label class="tg"><input id="t-labels" type="checkbox" checked /><span>Room labels</span></label>
+          <label class="tg"><input id="t-furniture" type="checkbox" checked /><span>Furniture</span></label>
+          <label class="tg"><input id="t-rotate" type="checkbox" /><span>Auto-rotate</span></label>
+        </section>
+      </div>
+    </aside>
+
+    <div id="minimap" aria-label="Minimap"></div>
+
+    <section id="info-card" hidden aria-live="polite">
+      <button id="ic-close" type="button" class="icon-btn" aria-label="Close room info">✕</button>
+      <h3 id="ic-name">Room</h3>
+      <dl>
+        <div><dt>Size</dt><dd id="ic-size"></dd></div>
+        <div><dt>Area</dt><dd id="ic-area"></dd></div>
+        <div><dt>Floor</dt><dd id="ic-floor"></dd></div>
+      </dl>
+      <p id="ic-note"></p>
+      <button id="ic-walk" type="button" class="primary">Walk inside</button>
+    </section>
+
+    <div id="walk-hud" hidden>
+      <div class="walk-top">
+        <span id="walk-room">Lobby</span>
+        <button id="walk-exit" type="button">Exit walk</button>
+      </div>
+      <p class="walk-hint">Drag to look · <kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd> or arrows to move · double-click the floor to go there</p>
+      <div class="crosshair" aria-hidden="true"></div>
+      <div id="joystick" aria-label="Move joystick"><div class="joy-knob"></div></div>
+    </div>
+
+    <button id="shot-btn" type="button" class="icon-btn" aria-label="Save this view as an image" title="Save this view as an image">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 8h3l2-3h6l2 3h3v11H4z" /><circle cx="12" cy="13" r="3.5" /></svg>
+    </button>
+    <button id="help-btn" type="button" class="icon-btn" aria-label="Help">?</button>
+    <div id="help" hidden role="dialog" aria-label="How to use">
+      <button id="help-close" type="button" class="icon-btn" aria-label="Close help">✕</button>
+      <h3>How to explore</h3>
+      <ul>
+        <li><b>Rotate</b> drag · <b>Zoom</b> scroll / pinch · <b>Pan</b> right-drag / two fingers</li>
+        <li><b>Click a room</b> (or its label / the minimap) to fly into it</li>
+        <li><b>Wall cut</b> slices the walls so you can see inside from any angle</li>
+        <li><b>Walk</b> mode: drag to look, WASD / arrows to move, double-click the floor to go there, climb the stairs</li>
+        <li>Keys: <kbd>1</kbd>–<kbd>4</kbd> views · <kbd>L</kbd> labels · <kbd>F</kbd> furniture · <kbd>R</kbd> rotate · <kbd>Esc</kbd> back</li>
+      </ul>
+      <p class="fine">Ground floor modelled from the supplied plan. The first floor is shown as an outer shell matching the elevation, as its layout was not provided.</p>
+    </div>
+
+    <script type="module" src="/src/main.js"></script>
+  </body>
+</html>

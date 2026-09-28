@@ -1,0 +1,74 @@
+// ---------------------------------------------------------------------------
+// Global constants. 1 world unit = 1 foot.
+// Origin = front-left outer corner of the building (road side).
+// +x → right (east side of the plan), +z → towards the road, +y → up.
+// ---------------------------------------------------------------------------
+
+// Vertical levels (feet above road/ground level)
+export const LV = {
+  road: 0.0,
+  ground: -0.02,
+  footpath: 0.3,
+  portico: 0.4,
+  duct: 1.2,
+  garden: 1.5,
+  gf: 2.0,          // ground-floor finished floor level (2' plinth)
+  gfCeil: 13.0,     // 11' clear height
+  ff: 13.5,         // first-floor level (6" slab)
+  ffCeil: 24.0,
+  roof: 24.5,
+  parapet: 27.5,
+  mumtyCeil: 32.5,
+  mumtyTop: 33.0,
+};
+
+// Sill / head heights for each opening type (absolute y)
+export const OPENING = {
+  door: [LV.gf, LV.gf + 7.0],
+  main: [LV.gf, LV.gf + 7.0],
+  arch: [LV.gf, LV.gf + 7.0],
+  win:  [LV.gf + 3.0, LV.gf + 7.0],
+  kwin: [LV.gf + 3.5, LV.gf + 7.0],
+  vent: [LV.gf + 6.0, LV.gf + 7.5],
+  swin: [LV.gf + 4.9, LV.gf + 10.9],
+};
+
+// Plot: 35'-5" wide, 48'-9" deep on the left, 47'-2" on the right (slanted rear)
+export const PLOT = {
+  width: 35.417,
+  rearLeft: -48.748,
+  rearRight: -47.164,
+  plotFront: 1.0,   // plot line is 1' in front of the building line
+};
+
+/** z of the (slanted) rear boundary at a given x */
+export const rearZ = (x) => PLOT.rearLeft + (PLOT.rearRight - PLOT.rearLeft) * (x / PLOT.width);
+export const REAR_T = 0.79; // rear wall thickness
+
+// Staircase (dog-legged, 2 flights of 10 risers from GF to FF)
+export const STAIR = {
+  x0: 15.619, x1: 34.581, z0: -8.843, z1: -0.792,
+  firstRiser: 23.05, landingX: 30.67,
+  flight1: [-8.843, -4.95],
+  flight2: [-4.70, -0.792],
+  risers: 20,
+};
+STAIR.tread = (STAIR.landingX - STAIR.firstRiser) / 9;
+STAIR.rise = (LV.ff - LV.gf) / STAIR.risers;
+
+export const HOUSE_CENTER = { x: 17.7, z: -24 };
+
+// Palette sampled from the supplied elevation render (lightened to albedo)
+export const COLORS = {
+  sage: 0x7f8b76,
+  sageDark: 0x6d7866,
+  tan: 0xb9a985,
+  tanDark: 0x9b8c6c,
+  white: 0xf3f3ef,
+  soffit: 0x3b3d40,
+  siding: 0x3d4045,
+  wood: 0x7a5c3e,
+  woodDark: 0x5a4330,
+  metal: 0x7e8489,
+  glassBlue: 0x6f86d6,
+};
