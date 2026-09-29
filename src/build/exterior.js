@@ -1,16 +1,27 @@
 import * as THREE from 'three';
 import { Batcher, extrudeXZ, regroup, roundedRect, worldUV } from '../geometry.js';
-import { LV, PLOT, rearZ, REAR_T } from '../config.js';
+import { LV, PLOT, rearZ, REAR_T, VOID, voidOutline } from '../config.js';
 
 // ---------------------------------------------------------------------------
 // Everything outside the ground-floor rooms: the first-floor shell and roof
 // (as seen in the elevation), the white "C" frame, wood cladding, gates,
-// terrace, garden details and the street/site around the plot.
+// terrace, the double-height space at the rear and the
+// street/site around the plot.
 // ---------------------------------------------------------------------------
 
 const FF0 = LV.ff, FF1 = LV.ffCeil;
+const T = 0.75; // first-floor wall thickness
+let GB; // glass batch (no shadow casting, so sunlight passes through)
+let CTX;
 
-/** Wall with openings on the first floor. o: [{a, b, sill, head, glass?}] */
+/** Teak for a frame member: a joint-free grain that runs along the member (V = upright). */
+const teak = (w, h) => (h > w ? 'teakFrameV' : 'teakFrame');
+
+/**
+ * Wall with openings on the first floor.
+ * o: [{ a, b, sill, head, glass?: key|false, frame?: key|false, curtain?: ±1 }]
+ * curtain = side of the wall (along its thickness axis) that gets a sheer curtain.
+ */
 function wallRun(B, { x, z, y0, y1, s0, s1, end = 'ext', open = [] }, colliders) {
   const vertical = z[1] - z[0] > x[1] - x[0];
   const [a0, a1] = vertical ? z : x;
@@ -27,32 +38,70 @@ function wallRun(B, { x, z, y0, y1, s0, s1, end = 'ext', open = [] }, colliders)
     if (o.head < y1) box(o.a, o.b, o.head, y1, lintel);
     cur = o.b;
     // frame + glass
-    const fb = (p0, p1, ya, yb, m, d = 0.2) => (vertical
-      ? B.box(tc - d / 2, tc + d / 2, ya, yb, p0, p1, m)
-      : B.box(p0, p1, ya, yb, tc - d / 2, tc + d / 2, m));
+    const fb = (p0, p1, ya, yb, m, d = 0.2, into = B) => (vertical
+      ? into.box(tc - d / 2, tc + d / 2, ya, yb, p0, p1, m)
+      : into.box(p0, p1, ya, yb, tc - d / 2, tc + d / 2, m));
     const fw = 0.14;
-    fb(o.a, o.b, o.sill, o.sill + fw, 'frameDark');
-    fb(o.a, o.b, o.head - fw, o.head, 'frameDark');
-    fb(o.a, o.a + fw, o.sill, o.head, 'frameDark');
-    fb(o.b - fw, o.b, o.sill, o.head, 'frameDark');
-    const w = o.b - o.a;
-    const panes = w > 4.5 ? 3 : w > 2.2 ? 2 : 1;
-    for (let i = 1; i < panes; i++) fb(o.a + (w * i) / panes - fw / 2, o.a + (w * i) / panes + fw / 2, o.sill, o.head, 'frameDark');
-    if (o.glass !== false) fb(o.a + fw, o.b - fw, o.sill + fw, o.head - fw, o.glass || 'glassFacade', 0.03);
+    const fm = o.frame ?? 'frameDark';
+    if (fm) {
+      const rail = fm === 'doorTeak' ? teak(1, 0) : fm, post = fm === 'doorTeak' ? teak(0, 1) : fm;
+      fb(o.a, o.b, o.sill, o.sill + fw, rail);
+      fb(o.a, o.b, o.head - fw, o.head, rail);
+      fb(o.a, o.a + fw, o.sill, o.head, post);
+      fb(o.b - fw, o.b, o.sill, o.head, post);
+      const w = o.b - o.a;
+      const panes = w > 4.5 ? 3 : w > 2.2 ? 2 : 1;
+      for (let i = 1; i < panes; i++) fb(o.a + (w * i) / panes - fw / 2, o.a + (w * i) / panes + fw / 2, o.sill, o.head, post);
+    }
+    if (o.glass !== false) fb(o.a + fw, o.b - fw, o.sill + fw, o.head - fw, o.glass || 'glassFacade', 0.03, GB);
+    if (o.curtain) sheer(vertical, o.curtain > 0 ? t1 + 0.12 : t0 - 0.12, o.a + 0.1, o.b - 0.1, o.sill + 0.12, o.head - 0.05);
   }
   if (a1 > cur) box(cur, a1, y0, y1, face);
   if (colliders) colliders.push({ x0: x[0], x1: x[1], z0: z[0], z1: z[1], y0, y1, id: 'ff' });
 }
 
+/** Softly folded sheer curtain filling an opening (hides the unmodelled first-floor rooms). */
+function sheer(vertical, c, a, b, ya, yb) {
+  const w = b - a, h = yb - ya;
+  const geo = new THREE.PlaneGeometry(w, h, Math.max(8, Math.round(w * 6)), 1);
+  const p = geo.attributes.position;
+  for (let i = 0; i < p.count; i++) p.setZ(i, Math.sin((p.getX(i) + w / 2) * 5.2) * 0.07);
+  geo.computeVertexNormals();
+  worldUV(geo);
+  const m = new THREE.Mesh(geo, CTX.mats.get('curtainSheer'));
+  if (vertical) { m.rotation.y = Math.PI / 2; m.position.set(c, (ya + yb) / 2, (a + b) / 2); }
+  else m.position.set((a + b) / 2, (ya + yb) / 2, c);
+  m.castShadow = false;
+  m.receiveShadow = true;
+  CTX.house.add(m);
+}
+
+/** Sheer curtain hanging between two plan points (x0, z0) → (x1, z1). */
+function sheerAt(x0, z0, x1, z1, ya, yb) {
+  const w = Math.hypot(x1 - x0, z1 - z0), h = yb - ya;
+  const geo = new THREE.PlaneGeometry(w, h, Math.max(8, Math.round(w * 6)), 1);
+  const p = geo.attributes.position;
+  for (let i = 0; i < p.count; i++) p.setZ(i, Math.sin((p.getX(i) + w / 2) * 5.2) * 0.08);
+  geo.computeVertexNormals();
+  worldUV(geo);
+  const m = new THREE.Mesh(geo, CTX.mats.get('curtainSheer'));
+  m.rotation.y = -Math.atan2(z1 - z0, x1 - x0);
+  m.position.set((x0 + x1) / 2, (ya + yb) / 2, (z0 + z1) / 2);
+  m.castShadow = false;
+  m.receiveShadow = true;
+  CTX.house.add(m);
+}
+
 export function buildExterior(ctx) {
   const { mats, house, site, walkables, colliders } = ctx;
   const B = new Batcher();
+  GB = new Batcher();
+  CTX = ctx;
   const get = (k) => mats.get(k);
 
   // =========================================================================
   // FIRST FLOOR SHELL (layout not supplied → exterior envelope only)
   // =========================================================================
-  const T = 0.75;
   const win = (a, b, sill = FF0 + 3, head = FF0 + 8) => ({ a, b, sill, head });
   // left wall
   wallRun(B, { x: [0, T], z: [rearZ(0), -18.039], y0: FF0, y1: FF1, s0: 'ext', s1: 'ffInterior',
@@ -69,32 +118,51 @@ export function buildExterior(ctx) {
   wallRun(B, { x: [25.3, PLOT.width], z: [-T, 0], y0: FF0, y1: FF1, s0: 'ffInterior', s1: 'ext' });
   // right (party) wall
   wallRun(B, { x: [PLOT.width - T, PLOT.width], z: [rearZ(PLOT.width), -T], y0: FF0, y1: FF1, s0: 'ffInterior', s1: 'ext' });
-  // garden-notch walls
-  wallRun(B, { x: [6.643, 22.174], z: [-43.689, -42.941], y0: FF0, y1: FF1, s0: 'ext', s1: 'ffInterior',
-    open: [win(8.0, 11.5), win(14.0, 17.5)] });
-  wallRun(B, { x: [5.852, 6.643], z: [rearZ(6.643), -43.689], y0: FF0, y1: FF1, s0: 'ffInterior', s1: 'ext' });
-  wallRun(B, { x: [22.174, 22.922], z: [rearZ(22.922), -43.689], y0: FF0, y1: FF1, s0: 'ext', s1: 'ffInterior' });
-  // slanted rear walls (with a window each)
-  const rearRun = (xa, xb, wins) => {
+  // walls around the double-height space (over the dining end, the old garden and the kitchen)
+  buildVoidWalls(B);
+  // slanted rear wall. Behind the dining area and the old garden it is a glass wall
+  // (buildGlassWall); the kitchen gets a tall teak window with sheer curtains.
+  // endA / endB: face at the run's start / end (null where it abuts the glass wall)
+  const rearRun = (xa, xb, wins, endA = 'ext', endB = 'ext') => {
     let cur = xa;
-    const seg = (p, q, y0, y1) => {
+    const seg = (p, q, y0, y1, ends = 'ext') => {
       const pts = [[p, rearZ(p) + REAR_T], [q, rearZ(q) + REAR_T], [q, rearZ(q)], [p, rearZ(p)]];
-      B.prism(pts, y0, y1, { top: 'ext', bottom: 'reveal', sides: ['ffInterior', 'ext', 'ext', 'ext'] });
+      const [e0, e1] = Array.isArray(ends) ? ends : [ends, ends];
+      B.prism(pts, y0, y1, { top: 'ext', bottom: 'reveal', sides: ['ffInterior', e1, 'ext', e0] });
     };
-    for (const [a, b] of wins) {
-      seg(cur, a, FF0, FF1);
-      seg(a, b, FF0, FF0 + 3.5);
-      seg(a, b, FF0 + 7.5, FF1);
+    for (const [a, b, tall] of wins) {
+      const s = tall ? FF0 + 2.2 : FF0 + 3.5, h = tall ? FF0 + 8.9 : FF0 + 7.5;
+      seg(cur, a, FF0, FF1, [cur === xa ? endA : 'ext', 'ext']);
+      seg(a, b, FF0, s, null); // below / above the window: ends abut the jambs
+      seg(a, b, h, FF1, null);
       const zc = (rearZ(a) + rearZ(b)) / 2 + REAR_T / 2;
-      B.box(a, b, FF0 + 3.5, FF0 + 7.5, zc - 0.02, zc + 0.02, 'glassFacade');
-      B.box(a, b, FF0 + 3.5, FF0 + 3.64, zc - 0.1, zc + 0.1, 'frameDark');
-      B.box(a, b, FF0 + 7.36, FF0 + 7.5, zc - 0.1, zc + 0.1, 'frameDark');
+      if (!tall) {
+        GB.box(a, b, s, h, zc - 0.02, zc + 0.02, 'glassFacade');
+        B.box(a, b, s, s + 0.14, zc - 0.1, zc + 0.1, 'frameDark');
+        B.box(a, b, h - 0.14, h, zc - 0.1, zc + 0.1, 'frameDark');
+      } else {
+        // boxes that follow the slanted wall: z centre = rearZ(x) + off
+        const sl = (x0, x1, y0, y1, off, d, m, into = B) => into.prism(
+          [[x0, rearZ(x0) + off + d / 2], [x1, rearZ(x1) + off + d / 2], [x1, rearZ(x1) + off - d / 2], [x0, rearZ(x0) + off - d / 2]], y0, y1,
+          { top: m, bottom: m, sides: [m, m, m, m] });
+        const c = REAR_T / 2, rail = teak(1, 0), post = teak(0, 1);
+        sl(a, b, s, s + 0.2, c, 0.26, rail); sl(a, b, h - 0.2, h, c, 0.26, rail);
+        sl(a, a + 0.2, s, h, c, 0.26, post); sl(b - 0.2, b, s, h, c, 0.26, post);
+        for (let i = 1; i < 3; i++) { const x = a + ((b - a) * i) / 3; sl(x - 0.07, x + 0.07, s, h, c, 0.18, post); }
+        sl(a, b, h - 1.9, h - 1.78, c, 0.18, rail); // transom
+        sl(a + 0.2, b - 0.2, s + 0.2, h - 0.2, c, 0.03, 'glass', GB);
+        // sheer curtains just inside, half drawn, on a brass rod
+        const zi = (x) => rearZ(x) + REAR_T + 0.16;
+        for (const [c0, c1] of [[a - 0.35, a + 1.3], [b - 1.3, b + 0.35]]) sheerAt(c0, zi(c0), c1, zi(c1), s + 0.05, h + 0.25);
+        sl(a - 0.5, b + 0.5, h + 0.27, h + 0.33, REAR_T + 0.16, 0.06, 'brass');
+      }
       cur = b;
     }
-    seg(cur, xb, FF0, FF1);
+    seg(cur, xb, FF0, FF1, [cur === xa ? endA : 'ext', endB]);
   };
-  rearRun(0, 6.643, [[2.2, 4.6]]);
-  rearRun(22.174, PLOT.width, [[26.0, 31.0]]);
+  rearRun(0, VOID.gardenX0, [[2.2, 4.6]], 'ext', null);
+  rearRun(22.174, PLOT.width, [[25.8, 31.2, true]], null, 'ext');
+  buildGlassWall(B);
 
   // FF floor finish (inside) and terrace tiles
   const terrace = [[T, -18.039], [17.5, -18.039], [17.5, 0], [T, 0]];
@@ -102,13 +170,18 @@ export function buildExterior(ctx) {
 
   // ---- roof slab + parapets ------------------------------------------------
   const roofOutline = [
-    [0, -18.039], [17.5, -18.039], [17.5, -T], [PLOT.width, -T], [PLOT.width, rearZ(PLOT.width)],
-    [22.174, rearZ(22.174)], [22.174, -43.689], [6.643, -43.689], [6.643, rearZ(6.643)], [0, rearZ(0)],
+    [0, -18.039], [17.5, -18.039], [17.5, -T], [PLOT.width, -T], [PLOT.width, rearZ(PLOT.width)], [0, rearZ(0)],
   ];
-  const roofGeo = extrudeXZ(roofOutline, [], FF1, LV.roof);
+  const vp = voidOutline();
+  const roofGeo = extrudeXZ(roofOutline, [vp], FF1, LV.roof);
   const roof = new THREE.Mesh(roofGeo, [get('terrace'), get('ceiling'), get('slabEdge')]);
   roof.castShadow = roof.receiveShadow = true;
   house.add(roof);
+  // solid roof over the double-height space, its soffit left as board-formed concrete
+  const vroof = new THREE.Mesh(extrudeXZ(vp, [], FF1, LV.roof), [get('terrace'), get('concreteCeil'), get('slabEdge')]);
+  vroof.name = 'void-roof';
+  vroof.castShadow = vroof.receiveShadow = true;
+  house.add(vroof);
   // keep the tower facade continuous across the roof-slab edge
   B.box(17.5, 25.3, FF1, LV.roof, -T, 0, { all: 'extTan', ny: null, py: null });
   B.box(25.3, PLOT.width, FF1, LV.roof, -T, 0, { all: 'ext', ny: null, py: null });
@@ -121,12 +194,8 @@ export function buildExterior(ctx) {
   parapet(0, 17.5, -18.039 - pt, -18.039);
   parapet(17.5, 17.5 + pt, -18.039, -9.635);
   parapet(PLOT.width - pt, PLOT.width, rearZ(PLOT.width), -9.635);
-  parapet(6.643, 22.174, -43.689, -43.689 + pt);
-  parapet(6.643 - pt, 6.643, rearZ(6.643), -43.689);
-  parapet(22.174, 22.174 + pt, rearZ(22.174), -43.689);
   const rearPar = (xa, xb) => B.prism([[xa, rearZ(xa) + pt], [xb, rearZ(xb) + pt], [xb, rearZ(xb)], [xa, rearZ(xa)]], P0, P1, { top: 'white', bottom: null, sides: ['ext', 'ext', 'ext', 'ext'] });
-  rearPar(0, 6.643);
-  rearPar(22.174, PLOT.width);
+  rearPar(0, PLOT.width);
 
   // ---- mumty (stair head-room) ---------------------------------------------
   const M0 = LV.roof, M1 = LV.mumtyCeil;
@@ -266,6 +335,7 @@ export function buildExterior(ctx) {
   B.box(0, PLOT.width, 0, 0.3, 0, PLOT.plotFront, { py: 'pavers', all: 'concrete', ny: null });
 
   house.add(B.build(get, { name: 'exterior' }));
+  house.add(GB.build(get, { name: 'exterior-glass', castShadow: false }));
 
   // walkable: plot strip is part of the batch; add a simple plane for raycasts
   const strip = new THREE.Mesh(new THREE.PlaneGeometry(PLOT.width, PLOT.plotFront), get('pavers'));
@@ -275,8 +345,145 @@ export function buildExterior(ctx) {
   house.add(strip);
   walkables.push(strip);
 
-  buildGarden(ctx);
   buildSite(ctx);
+}
+
+// ---------------------------------------------------------------------------
+// Double-height space: first-floor walls around it, with a French balcony and a
+// projecting teak window (jharokha) that look down into it.
+// ---------------------------------------------------------------------------
+function buildVoidWalls(B) {
+  const I = 'ffInterior';
+  const zF = VOID.zFront;      // void-side face of the front wall
+  const zR = zF + 0.5;         // room-side face
+  const wood = 'doorTeak';
+  // teak members: joint-free grain that runs along each member
+  const tb = (x0, x1, y0, y1, z0, z1) => B.box(x0, x1, y0, y1, z0, z1, teak(Math.max(x1 - x0, z1 - z0), y1 - y0));
+
+  // wall above the bedroom-1 rear wall (faces the old-garden part of the void)
+  wallRun(B, { x: [VOID.gardenX0, VOID.x0], z: [VOID.gardenZ, -42.941], y0: FF0, y1: FF1, s0: I, s1: I, end: I,
+    open: [{ a: 8.0, b: 11.4, sill: FF0 + 3, head: FF0 + 7.5, frame: wood, glass: 'glass', curtain: 1 }] });
+  // wall beside the puja room
+  wallRun(B, { x: [5.852, VOID.gardenX0], z: [rearZ(VOID.gardenX0), VOID.gardenZ], y0: FF0, y1: FF1, s0: I, s1: I, end: I });
+  // wall above the bedroom-1 / hall wall
+  wallRun(B, { x: [11.879, VOID.x0], z: [-42.941, zF], y0: FF0, y1: FF1, s0: I, s1: I, end: I,
+    open: [{ a: -41.8, b: -39.2, sill: FF0 + 3, head: FF0 + 7.5, frame: wood, glass: 'glass', curtain: -1 }] });
+
+  // front wall over the kitchen / bedroom-2 line: French balcony (over the hall) + jharokha (over the kitchen)
+  const bal = { a: 14.3, b: 20.3, sill: FF0 + 0.05, head: FF0 + 7.5 };
+  const jh = { a: 25.3, b: 31.3, sill: FF0 + 2.6, head: FF0 + 7.6 };
+  wallRun(B, { x: [11.879, PLOT.width - T], z: [zF, zR], y0: FF0, y1: FF1, s0: I, s1: I, end: I,
+    open: [{ ...bal, frame: false, glass: false }, { ...jh, frame: false, glass: false }] });
+
+  // -- French balcony: glazed teak doors, glass railing on the void face -------
+  {
+    const { a, b, sill, head } = bal;
+    const zc = zF + 0.25, fd = 0.3;
+    const fr = (x0, x1, y0, y1) => tb(x0, x1, y0, y1, zc - fd / 2, zc + fd / 2);
+    fr(a, a + 0.25, sill, head); fr(b - 0.25, b, sill, head); fr(a, b, head - 0.25, head);
+    // two leaves, each with 2 × 3 panes
+    const lw = (b - a - 0.5) / 2;
+    for (let k = 0; k < 2; k++) {
+      const x0 = a + 0.25 + k * lw, x1 = x0 + lw, y0 = sill, y1 = head - 0.25;
+      const t = 0.12;
+      tb(x0, x0 + 0.2, y0, y1, zc - t / 2, zc + t / 2);
+      tb(x1 - 0.2, x1, y0, y1, zc - t / 2, zc + t / 2);
+      tb(x0, x1, y0, y0 + 0.5, zc - t / 2, zc + t / 2);
+      tb(x0, x1, y1 - 0.2, y1, zc - t / 2, zc + t / 2);
+      tb((x0 + x1) / 2 - 0.05, (x0 + x1) / 2 + 0.05, y0, y1, zc - 0.04, zc + 0.04);
+      for (const f of [0.42, 0.72]) tb(x0, x1, y0 + (y1 - y0) * f - 0.05, y0 + (y1 - y0) * f + 0.05, zc - 0.04, zc + 0.04);
+      GB.box(x0 + 0.2, x1 - 0.2, y0 + 0.5, y1 - 0.2, zc - 0.015, zc + 0.015, 'glass');
+    }
+    sheer(false, zR + 0.15, a + 0.1, b - 0.1, sill + 0.1, head - 0.05);
+    // railing across the opening
+    const zr = zF - 0.12;
+    tb(a - 0.15, b + 0.15, sill + 3.35, sill + 3.55, zr - 0.13, zF + 0.02);   // handrail
+    tb(a - 0.05, b + 0.05, sill, sill + 0.18, zr - 0.08, zF);                  // shoe rail
+    for (const x of [a + 0.05, (a + b) / 2, b - 0.05]) B.box(x - 0.05, x + 0.05, sill, sill + 3.35, zr - 0.05, zr + 0.05, 'steel');
+    GB.box(a + 0.1, b - 0.1, sill + 0.2, sill + 3.33, zr - 0.012, zr + 0.012, 'glass');
+  }
+
+  // -- Jharokha: a teak bay window cantilevered into the void -------------------
+  {
+    const { a, b, sill, head } = jh;
+    const D = 1.6, zo = zF - D;              // projection and outer face
+    const p = 0.25;                          // post size
+    tb(a - 0.25, b + 0.25, sill - 0.4, sill, zo - 0.15, zF);                    // floor / seat board
+    B.box(a, b, sill - 1.0, sill - 0.4, zo + 0.05, zF, 'furnWood');                     // apron
+    tb(a - 0.05, b + 0.05, sill - 1.12, sill - 1.0, zo, zF);                   // apron trim
+    tb(a - 0.45, b + 0.45, head, head + 0.22, zo - 0.45, zF);                   // hood
+    B.box(a - 0.3, b + 0.3, head + 0.22, head + 0.36, zo - 0.3, zF, 'furnWood');         // hood cap
+    tb(a - 0.45, b + 0.45, head - 0.3, head, zo - 0.45, zo - 0.33);             // fascia
+    for (const x of [a - 0.25, b]) tb(x, x + p, sill, head, zo - 0.15, zo + 0.1); // corner posts
+    // front: rails, mullions, transom, glass
+    tb(a, b, sill, sill + 0.22, zo - 0.1, zo + 0.08);
+    tb(a, b, head - 0.22, head, zo - 0.1, zo + 0.08);
+    for (let i = 1; i < 3; i++) { const x = a + ((b - a) * i) / 3; tb(x - 0.08, x + 0.08, sill, head, zo - 0.08, zo + 0.06); }
+    tb(a, b, head - 1.45, head - 1.33, zo - 0.08, zo + 0.06);
+    GB.box(a, b, sill + 0.22, head - 0.22, zo - 0.015, zo + 0.015, 'glass');
+    // sides: rails + glass
+    for (const x of [a - 0.25, b]) {
+      tb(x, x + p, sill, sill + 0.22, zo + 0.1, zF);
+      tb(x, x + p, head - 0.22, head, zo + 0.1, zF);
+      tb(x, x + p, head - 1.45, head - 1.33, zo + 0.1, zF);
+      GB.box(x + p / 2 - 0.015, x + p / 2 + 0.015, sill + 0.22, head - 0.22, zo + 0.1, zF, 'glass');
+    }
+    // window seat cushion, and a curtain at the back of the bay
+    B.box(a + 0.2, b - 0.2, sill, sill + 0.28, zo + 0.25, zF - 0.1, 'sofaAccent');
+    sheer(false, zR + 0.12, a + 0.1, b - 0.1, sill + 0.1, head - 0.05);
+    // carved brackets under the bay
+    const bracket = new THREE.Shape();
+    bracket.moveTo(0, 0); bracket.lineTo(0, 1.7); bracket.lineTo(-1.35, 1.7); bracket.quadraticCurveTo(-0.35, 1.25, 0, 0);
+    const bg = new THREE.ExtrudeGeometry(bracket, { depth: 0.22, bevelEnabled: false, curveSegments: 6 });
+    bg.rotateY(-Math.PI / 2);
+    worldUV(bg);
+    for (const x of [a + 0.35, (a + b) / 2, b - 0.35]) {
+      const m = new THREE.Mesh(bg.clone(), CTX.mats.get(wood));
+      m.position.set(x + 0.11, sill - 1.12 - 1.7, zF);
+      m.castShadow = m.receiveShadow = true;
+      CTX.house.add(m);
+    }
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Glass wall in the rear (east) wall behind the dining area and the old garden.
+// Below door height the wall is solid (structure.js); from there the glass rises
+// to the roof, crossed by the first-floor slab edge, so the morning sun comes
+// into the double-height space. Teak frames.
+// ---------------------------------------------------------------------------
+function buildGlassWall(B) {
+  const x0 = VOID.gardenX0, x1 = 22.174;       // the bay in the rear wall
+  const g0 = x0 + 0.6, g1 = x1 - 0.6;           // glazed width between two piers
+  const sill = VOID.glassSill, head = FF1 - 0.7; // bottom / top of the glazing
+  const band0 = LV.gfCeil, band1 = FF0;         // first-floor slab edge crossing the glass
+  const rail = teak(1, 0), post = teak(0, 1);
+  // prism that follows the slanted wall: z = rearZ(x) + off ± d/2
+  const sl = (xa, xb, y0, y1, off, d, m, into = B) => into.prism(
+    [[xa, rearZ(xa) + off + d / 2], [xb, rearZ(xb) + off + d / 2], [xb, rearZ(xb) + off - d / 2], [xa, rearZ(xa) + off - d / 2]], y0, y1,
+    { top: m, bottom: m, sides: [m, m, m, m] });
+  const full = (xa, xb) => [[xa, rearZ(xa) + REAR_T], [xb, rearZ(xb) + REAR_T], [xb, rearZ(xb)], [xa, rearZ(xa)]];
+  // piers at both ends, below and above the slab edge: one end is the jamb, the other abuts the rear wall
+  for (const [a, b, jA, jB] of [[x0, g0, null, 'ext'], [g1, x1, 'ext', null]]) {
+    B.prism(full(a, b), sill, band0, { top: null, bottom: null, sides: ['pHall', jB, 'ext', jA] });
+    B.prism(full(a, b), band1, FF1, { top: null, bottom: null, sides: ['ffInterior', jB, 'ext', jA] });
+  }
+  // lintel under the roof
+  B.prism(full(g0, g1), head, FF1, { top: null, bottom: 'reveal', sides: ['ffInterior', null, 'ext', null] });
+  // teak frame: jambs, rails at the sill / slab edge / head, a transom, mullions
+  const c = REAR_T / 2;
+  sl(g0, g0 + 0.22, sill, head, c, 0.3, post);
+  sl(g1 - 0.22, g1, sill, head, c, 0.3, post);
+  for (const [y0, y1] of [[sill, sill + 0.22], [band0 - 0.2, band0], [band1, band1 + 0.2], [head - 0.2, head]]) sl(g0, g1, y0, y1, c, 0.3, rail);
+  sl(g0, g1, FF0 + 5.0, FF0 + 5.14, c, 0.22, rail);
+  const bays = 6;
+  for (let i = 1; i < bays; i++) {
+    const x = g0 + ((g1 - g0) * i) / bays;
+    sl(x - 0.08, x + 0.08, sill, band0, c, 0.22, post);
+    sl(x - 0.08, x + 0.08, band1, head, c, 0.22, post);
+  }
+  sl(g0 + 0.2, g1 - 0.2, sill + 0.22, band0 - 0.2, c, 0.03, 'glass', GB);
+  sl(g0 + 0.2, g1 - 0.2, band1 + 0.2, head - 0.2, c, 0.03, 'glass', GB);
 }
 
 // ---------------------------------------------------------------------------
@@ -308,52 +515,6 @@ function makeGate(mats, w, h) {
   }
   g.traverse((o) => { if (o.isMesh) o.castShadow = true; });
   return g;
-}
-
-// ---------------------------------------------------------------------------
-function buildGarden(ctx) {
-  const { mats, house, colliders } = ctx;
-  const get = (k) => mats.get(k);
-  const gy = LV.garden;
-  // stepping stones from the hall door to the puja room
-  const stones = [[19.8, -44.7], [17.2, -44.6], [14.9, -44.7], [12.6, -44.6], [10.3, -44.7], [8.1, -44.9]];
-  for (const [x, z] of stones) {
-    const s = new THREE.Mesh(new THREE.CylinderGeometry(0.85, 0.9, 0.12, 9), get('stoneStep'));
-    s.position.set(x, gy + 0.03, z);
-    s.receiveShadow = true;
-    house.add(s);
-  }
-  // tulsi planter (vrindavan)
-  const tp = new THREE.Group();
-  const base = new THREE.Mesh(new THREE.BoxGeometry(1.5, 2.2, 1.5), get('white'));
-  base.position.y = 1.1;
-  const cap = new THREE.Mesh(new THREE.BoxGeometry(1.8, 0.25, 1.8), get('saffron'));
-  cap.position.y = 2.3;
-  const soilM = new THREE.Mesh(new THREE.BoxGeometry(1.3, 0.1, 1.3), get('soil'));
-  soilM.position.y = 2.45;
-  tp.add(base, cap, soilM);
-  for (let i = 0; i < 7; i++) {
-    const b = new THREE.Mesh(new THREE.IcosahedronGeometry(0.32 + (i % 3) * 0.06, 0), get('tulsi'));
-    b.position.set(Math.cos(i * 1.7) * 0.3, 2.7 + (i % 4) * 0.22, Math.sin(i * 1.7) * 0.3);
-    tp.add(b);
-  }
-  tp.position.set(13.8, gy, -46.75);
-  tp.traverse((o) => { if (o.isMesh) o.castShadow = o.receiveShadow = true; });
-  house.add(tp);
-  colliders.push({ x0: 12.9, x1: 14.7, z0: -47.65, z1: -45.85, y0: gy, y1: gy + 3, id: 'tulsi' });
-  // shrubs along the compound wall
-  for (const [x, s] of [[8.2, 1.0], [10.8, 0.8], [16.6, 0.9], [21.0, 1.1]]) {
-    const z = rearZ(x) + 0.95;
-    const pot = new THREE.Mesh(new THREE.CylinderGeometry(0.45, 0.35, 0.8, 14), get('pot'));
-    pot.position.set(x, gy + 0.4, z);
-    house.add(pot);
-    for (let i = 0; i < 4; i++) {
-      const b = new THREE.Mesh(new THREE.IcosahedronGeometry(0.55 * s, 1), get(i % 2 ? 'leaf' : 'leafDark'));
-      b.position.set(x + Math.cos(i * 2.1) * 0.3, gy + 1.2 + i * 0.35 * s, z + Math.sin(i * 2.1) * 0.25);
-      b.castShadow = true;
-      house.add(b);
-    }
-  }
 }
 
 // ---------------------------------------------------------------------------

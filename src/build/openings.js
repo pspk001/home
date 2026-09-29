@@ -10,6 +10,7 @@ export function buildOpenings(ctx) {
   const { mats, house, colliders, walkables } = ctx;
   const thresholdMat = new THREE.MeshBasicMaterial({ visible: false });
   const B = new Batcher();
+  const G = new Batcher(); // glass: kept out of the shadow map so sunlight comes through
   const leaves = new THREE.Group();
   leaves.name = 'door-leaves';
 
@@ -20,7 +21,10 @@ export function buildOpenings(ctx) {
     const tc = (t0 + t1) / 2;
     const outer0 = OUTER.has(w.s0), outer1 = OUTER.has(w.s1);
     // box helper in (along, thickness) space
-    const bx = (a0, a1, y0, y1, c0, c1, m) => (vertical ? B.box(c0, c1, y0, y1, a0, a1, m) : B.box(a0, a1, y0, y1, c0, c1, m));
+    const bx = (a0, a1, y0, y1, c0, c1, m) => {
+      const T = m === 'glass' || m === 'glassFacade' ? G : B;
+      return vertical ? T.box(c0, c1, y0, y1, a0, a1, m) : T.box(a0, a1, y0, y1, c0, c1, m);
+    };
 
     for (const o of w.open) {
       const lo = Math.min(o.a, o.b), hi = Math.max(o.a, o.b);
@@ -69,8 +73,10 @@ export function buildOpenings(ctx) {
             bx(lo - 0.1, hi + 0.1, sill - 0.06, sill + 0.02, inner[0], inner[1], 'graniteBlack');
             if (outer0) bx(lo - 0.15, hi + 0.15, sill - 0.12, sill, t0 - 0.25, t0 + 0.05, 'white');
             if (outer1) bx(lo - 0.15, hi + 0.15, sill - 0.12, sill, t1 - 0.05, t1 + 0.25, 'white');
-            if (outer0) bx(lo - 0.25, hi + 0.25, head, head + 0.18, t0 - 0.9, t0 + 0.02, 'white'); // chajja
-            if (outer1) bx(lo - 0.25, hi + 0.25, head, head + 0.18, t1 - 0.02, t1 + 0.9, 'white');
+            if (!o.noChajja) { // sunshade over the window (not needed under a roofed portico)
+              if (outer0) bx(lo - 0.25, hi + 0.25, head, head + 0.18, t0 - 0.9, t0 + 0.02, 'white');
+              if (outer1) bx(lo - 0.25, hi + 0.25, head, head + 0.18, t1 - 0.02, t1 + 0.9, 'white');
+            }
           }
         }
         continue;
@@ -139,6 +145,7 @@ export function buildOpenings(ctx) {
     }
   }
   house.add(B.build((k) => mats.get(k), { name: 'openings' }));
+  house.add(G.build((k) => mats.get(k), { name: 'glazing', castShadow: false }));
   house.add(leaves);
 }
 
@@ -160,7 +167,7 @@ function makeLeaf(mats, style, w, h, t, handleSide = 1) {
     add(new THREE.BoxGeometry(s, h, t), fr, -w / 2 + s / 2, h / 2, 0);
     add(new THREE.BoxGeometry(s, h, t), fr, w / 2 - s / 2, h / 2, 0);
     add(new THREE.BoxGeometry(w - 2 * s, s * 0.6, t), fr, 0, h * 0.45, 0);
-    add(new THREE.BoxGeometry(w - 2 * s, h - 2 * s, 0.03), mats.get('glass'), 0, h / 2, 0);
+    add(new THREE.BoxGeometry(w - 2 * s, h - 2 * s, 0.03), mats.get('glass'), 0, h / 2, 0).castShadow = false;
   } else {
     const mat = mats.get(style === 'teak' ? 'doorTeak' : style === 'pvc' ? 'doorPVC' : 'doorWood');
     add(new THREE.BoxGeometry(w, h, t), mat, 0, h / 2, 0);

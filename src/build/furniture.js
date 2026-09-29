@@ -134,6 +134,30 @@ function ceilingFan(x, z, blades = 'furnWood') {
 function ceilingLight(x, z, r = 0.45) {
   mesh(cyl(r, r, 0.06, 24), 'lightPanel', x, LV.gfCeil - 0.03, z, group, { uv: false, shadow: false });
 }
+/** Cascade of frosted glass globes hanging on long wires from the double-height ceiling. */
+function globeChandelier(cx, cz) {
+  const top = LV.ffCeil;
+  mesh(cyl(1.1, 1.1, 0.06, 32), 'brass', cx, top - 0.03, cz, group, { uv: false, shadow: false });
+  const n = 15;
+  for (let i = 0; i < n; i++) {
+    const a = i * 2.39996;                        // golden-angle spiral
+    const r = 0.2 + 0.75 * Math.sqrt((i + 0.5) / n);
+    const x = cx + Math.cos(a) * r, z = cz + Math.sin(a) * r;
+    const y = LV.gf + 7.4 + ((i * 7) % n) / n * 4.6; // 7′-4″ … 12′ above the floor
+    const len = top - y - 0.3;
+    mesh(cyl(0.012, 0.012, len, 4), 'blackMatte', x, y + 0.3 + len / 2, z, group, { uv: false, shadow: false });
+    mesh(cyl(0.05, 0.05, 0.12, 8), 'brass', x, y + 0.3, z, group, { uv: false, shadow: false });
+    mesh(new THREE.SphereGeometry(0.27, 16, 12), 'globeGlass', x, y, z, group, { uv: false, shadow: false });
+  }
+}
+/** Long cylindrical pendant lamp hanging from the double-height ceiling (bottom at y). */
+function pendant(x, z, y) {
+  const len = LV.ffCeil - y - 0.9;
+  mesh(cyl(0.015, 0.015, len, 4), 'blackMatte', x, y + 0.9 + len / 2, z, group, { uv: false, shadow: false });
+  mesh(new THREE.CylinderGeometry(0.3, 0.3, 0.9, 20, 1, true), 'blackMatte', x, y + 0.45, z, group, { uv: false });
+  mesh(cyl(0.28, 0.28, 0.02, 20), 'lampShade', x, y + 0.05, z, group, { uv: false, shadow: false });
+  mesh(cyl(0.3, 0.3, 0.04, 16), 'blackMatte', x, LV.ffCeil - 0.02, z, group, { uv: false, shadow: false });
+}
 function plant(x, z, s = 1, y = F, pot = 'pot') {
   const g = item(x, z, 0, y);
   mesh(cyl(0.55 * s, 0.4 * s, 1.1 * s, 16), pot, 0, 0.55 * s, 0, g, { uv: false });
@@ -366,31 +390,32 @@ export function buildFurniture(ctx) {
   mesh(box(0.9, 0.12, 3.6), 'furnWood', 11.4, F + 2.6, -24.6);
   ceilingFan(6.3, -24.7);
   curtains('z', 0.792, -26.05, -20.94, 1, 'curtainBeige');
+  curtains('x', -18.831, 2.0, 11.0, -1, 'curtainBeige'); // wide window onto the portico
   wallArt(6.1, F + 5.6, -30.48, 0, 3.6, 2.2, 'art');
-  plant(1.6, -19.7, 1.1);
+  plant(1.55, -20.25, 1.1);
 
-  // ---- Drawing / dining hall ---------------------------------------------------
-  diningTable(item(16.89, -37.25), 2.76, 4.75);
-  collide(15.5, 18.3, -39.6, -34.9, 2.6);
-  chair(item(16.9, -40.45, 0));
-  chair(item(16.9, -33.95, Math.PI));
-  chair(item(14.65, -38.16, Math.PI / 2));
-  chair(item(14.65, -36.35, Math.PI / 2));
-  chair(item(19.1, -38.16, -Math.PI / 2));
-  chair(item(19.1, -36.35, -Math.PI / 2));
-  // pendant over the table
-  for (const dz of [-1.2, 0, 1.2]) {
-    mesh(cyl(0.02, 0.02, 3.0, 6), 'blackMatte', 16.89, LV.gfCeil - 1.5, -37.25 + dz, group, { uv: false, shadow: false });
-    mesh(new THREE.ConeGeometry(0.45, 0.6, 20, 1, true), 'gold', 16.89, LV.gfCeil - 3.2, -37.25 + dz, group, { uv: false });
-    mesh(new THREE.SphereGeometry(0.16, 12, 8), 'lampShade', 16.89, LV.gfCeil - 3.4, -37.25 + dz, group, { uv: false });
-  }
-  // wash basin on the garden wall
-  const wb = item(21.4, -42.15);
+  // ---- Drawing / dining hall (open to the kitchen and the old garden) ------------
+  // the dining table stands in the double-height space, under the chandelier
+  const tx = 17.2, tz = -41.4;
+  diningTable(item(tx, tz), 2.76, 4.75);
+  collide(tx - 1.39, tx + 1.41, tz - 2.35, tz + 2.35, 2.6);
+  chair(item(tx, tz - 3.2, 0));
+  chair(item(tx, tz + 3.3, Math.PI));
+  chair(item(tx - 2.24, tz - 0.91, Math.PI / 2));
+  chair(item(tx - 2.24, tz + 0.9, Math.PI / 2));
+  chair(item(tx + 2.21, tz - 0.91, -Math.PI / 2));
+  chair(item(tx + 2.21, tz + 0.9, -Math.PI / 2));
+  globeChandelier(tx, tz);
+  // wash basin on the bedroom-2 wall (the old garden wall is gone)
+  const wb = item(21.4, -34.8, -Math.PI / 2);
   mesh(cyl(0.35, 0.25, 2.5, 16), 'ceramic', 0, 1.25, 0, wb, { uv: false });
   mesh(cyl(0.75, 0.55, 0.4, 24), 'ceramic', 0, 2.7, 0, wb, { uv: false });
   mesh(cyl(0.6, 0.6, 0.02, 24), 'basinInner', 0, 2.91, 0, wb, { uv: false });
   mesh(box(1.8, 2.4, 0.05), 'mirror', 0, 5.0, -0.76, wb, { uv: false });
-  collide(20.6, 22.17, -42.94, -41.7, 3);
+  collide(20.6, 22.17, -35.6, -34.0, 3);
+  // a big leafy plant in the old garden bay, beside the way to the puja room
+  plant(11.3, -46.6, 1.35);
+  collide(10.55, 12.05, -47.35, -45.85, 3);
   // crockery unit along the west wall
   const cu = item(12.95, -35.0, Math.PI / 2);
   mesh(box(5.0, 3.0, 1.4), 'furnWood', 0, 1.5, 0, cu);
@@ -426,9 +451,9 @@ export function buildFurniture(ctx) {
   tv(item(21.12, -15.9, Math.PI / 2, F + 4.3), 3.4, 1.95);
   ceilingFan(26.3, -15.0);
 
-  // ---- Kitchen ----------------------------------------------------------------
+  // ---- Kitchen (double height: pendants drop from the roof) ---------------------
   kitchen();
-  ceilingLight(28.5, -41.5, 0.6);
+  for (const x of [26.0, 29.4]) pendant(x, -41.6, LV.gf + 8.6);
 
   // ---- Toilets -----------------------------------------------------------------
   toiletSet(26.8, -23.62, [22.9, -21.7, Math.PI], [25.0, -26.5, 0]);

@@ -1,6 +1,6 @@
 import * as THREE from 'three';
-import { Batcher, extrudeXZ } from '../geometry.js';
-import { LV, OPENING, PLOT, rearZ, REAR_T, STAIR } from '../config.js';
+import { Batcher, extrudeXZ, regroup } from '../geometry.js';
+import { LV, OPENING, PLOT, rearZ, REAR_T, STAIR, VOID, voidOutline } from '../config.js';
 import { WALLS, ROOMS } from '../plan.js';
 
 const EXTERIOR = new Set(['ext', 'extTan', 'pPortico', 'siding']);
@@ -45,7 +45,7 @@ function faceMats(w, vertical, lower, { endLo, endHi, top, bottom }) {
 
 /** Is the point inside any other wall (or the slanted rear wall)? */
 function solidAt(px, pz, self) {
-  if (pz < rearZ(px) + REAR_T - 0.02 && (px < 6.66 || px > 22.15)) return true;
+  if (pz < rearZ(px) + REAR_T - 0.02) return true; // rear wall
   for (const w of WALLS) {
     if (w === self) continue;
     if (px >= w.x[0] - 0.01 && px <= w.x[1] + 0.01 && pz >= w.z[0] - 0.01 && pz <= w.z[1] + 0.01) return true;
@@ -115,14 +115,17 @@ export function buildStructure(ctx) {
   }
 
   // ---- slanted rear walls ---------------------------------------------------
+  // ends: material for both end faces, or [xa end, xb end] (null = the end abuts
+  // another piece of rear wall, so no face: coincident faces would flicker)
   const rearWall = (xa, xb, t, y0, y1, inner, ends = 'ext', top = 'reveal') => {
+    const [eA, eB] = Array.isArray(ends) ? ends : [ends, ends];
     const A = [xa, rearZ(xa)], Bp = [xb, rearZ(xb)];
     const pts = [[xa, A[1] + t], [xb, Bp[1] + t], [xb, Bp[1]], [xa, A[1]]];
     if (y0 < LV.gf && y1 > LV.gf) {
-      B.prism(pts, y0, LV.gf, { top: null, bottom: null, sides: [inner, 'plinth', 'plinth', 'plinth'] });
-      B.prism(pts, LV.gf, y1, { top, bottom: null, sides: [inner, ends, 'ext', ends] });
+      B.prism(pts, y0, LV.gf, { top: null, bottom: null, sides: [inner, eB && 'plinth', 'plinth', eA && 'plinth'] });
+      B.prism(pts, LV.gf, y1, { top, bottom: null, sides: [inner, eB, 'ext', eA] });
     } else {
-      B.prism(pts, y0, y1, { top, bottom: null, sides: [inner, ends, 'ext', ends] });
+      B.prism(pts, y0, y1, { top, bottom: null, sides: [inner, eB, 'ext', eA] });
     }
     // colliders: chop into 1 ft chunks along x (the wall is slightly slanted)
     for (let x = xa; x < xb; x += 1) {
@@ -130,9 +133,15 @@ export function buildStructure(ctx) {
       colliders.push({ x0: x, x1: xe, z0: Math.min(rearZ(x), rearZ(xe)) - 0.05, z1: Math.max(rearZ(x), rearZ(xe)) + t, y0, y1, id: 'rear' });
     }
   };
-  rearWall(0, 6.643, REAR_T, 0, TOP, 'pPuja');
-  rearWall(22.174, PLOT.width, REAR_T, 0, TOP, 'pKitchen');
-  rearWall(6.643, 22.174, 0.45, 0, LV.garden + 6.5, 'ext', 'ext', 'white'); // garden compound wall
+  // (between x 6.643 and 22.174, behind the dining area and the old garden, the
+  //  wall is solid up to door height with a granite sill; the glass wall above it is
+  //  built with the first floor in exterior.js)
+  rearWall(0, 6.643, REAR_T, 0, TOP, 'pPuja', ['ext', null]);
+  rearWall(6.643, 22.174, REAR_T, 0, VOID.glassSill, 'pHall', [null, null], 'graniteBlack');
+  rearWall(22.174, PLOT.width, REAR_T, 0, TOP, 'pKitchen', [null, 'ext']);
+
+  // exposed-concrete downstand beam along the free edge of the first-floor slab over the hall
+  B.box(VOID.x0, 22.174, TOP - 1.0, TOP, VOID.zFront, VOID.zFront + 0.6, { all: 'concreteCeil', nx: null, px: null, py: null });
 
   // ---- bathroom wall tiles & kitchen dado ------------------------------------
   cladding(B, ctx);
@@ -144,7 +153,7 @@ export function buildStructure(ctx) {
     const y = LV[room.level];
     const RB = new Batcher();
     for (const [x0, x1, z0, z1] of room.rects) {
-      if (room.rear) {
+      if (room.rear && z0 < rearZ(x0) + 1) {
         const za = rearZ(x0) + 0.05, zb = rearZ(x1) + 0.05;
         RB.prism([[x0, z1], [x1, z1], [x1, zb], [x0, za]], 0, y, { top: room.floor, bottom: null, sides: [null, null, null, null] });
       } else {
@@ -159,13 +168,14 @@ export function buildStructure(ctx) {
   }
 
   // ---- ground-floor ceiling / first-floor slab --------------------------------
-  const outline = [
-    [0, 0], [PLOT.width, 0], [PLOT.width, rearZ(PLOT.width)], [22.174, rearZ(22.174)],
-    [22.174, -43.689], [6.643, -43.689], [6.643, rearZ(6.643)], [0, rearZ(0)],
-  ];
+  // (open over the stair and over the double-height space at the rear)
+  const outline = [[0, 0], [PLOT.width, 0], [PLOT.width, rearZ(PLOT.width)], [0, rearZ(0)]];
   const stairHole = [[STAIR.firstRiser, -8.843], [STAIR.x1, -8.843], [STAIR.x1, -0.792], [STAIR.firstRiser, -0.792]];
-  const slabGeo = extrudeXZ(outline, [stairHole], LV.gfCeil, LV.ff);
-  const slab = new THREE.Mesh(slabGeo, [mats.get('slabTop'), mats.get('ceiling'), mats.get('slabEdge')]);
+  // the slab edge round the double-height space is left as exposed concrete
+  const vo = voidOutline();
+  const onVoidEdge = (c) => c.x > vo[0][0] - 0.05 && c.x < vo[1][0] + 0.05 && c.z < VOID.zFront + 0.05 && c.z > rearZ(c.x) + REAR_T - 0.05;
+  const slabGeo = regroup(extrudeXZ(outline, [stairHole, vo], LV.gfCeil, LV.ff), (gi, c) => (gi === 2 && onVoidEdge(c) ? 3 : gi));
+  const slab = new THREE.Mesh(slabGeo, [mats.get('slabTop'), mats.get('ceiling'), mats.get('slabEdge'), mats.get('concreteCeil')]);
   slab.name = 'gf-ceiling-slab';
   slab.castShadow = slab.receiveShadow = true;
   slab.userData.ceiling = true;
