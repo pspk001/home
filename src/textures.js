@@ -392,6 +392,59 @@ export function textPlate({ W = 512, H = 128, text = '', bg = '#1c1c1c', fg = '#
 }
 
 /** Decorative wall art (abstract painting). */
+/**
+ * House name plate: polished black granite with a brass border and raised brass
+ * lettering. Returns { map, rm }: `rm` packs roughness (G) and metalness (B), so
+ * the letters shine like metal while the stone stays glossy.
+ */
+export function namePlate({ text = 'Surbhi Bhawan', W = 1536, H = 640, seed = 61 } = {}) {
+  const c = canvas(W, H), ctx = c.getContext('2d');
+  const m = canvas(W, H), mx = m.getContext('2d');
+  const r = rng(seed);
+  // granite: near-black with a soft sheen and fine speckles
+  const bg = ctx.createLinearGradient(0, 0, W, H);
+  bg.addColorStop(0, '#1e1f22'); bg.addColorStop(0.55, '#111214'); bg.addColorStop(1, '#1b1c1f');
+  ctx.fillStyle = bg; ctx.fillRect(0, 0, W, H);
+  for (let i = 0; i < 2600; i++) {
+    const v = 40 + r() * 70;
+    ctx.fillStyle = `rgba(${v | 0},${v | 0},${(v + 4) | 0},${0.25 + r() * 0.35})`;
+    ctx.fillRect(r() * W, r() * H, 1 + r() * 2.2, 1 + r() * 2.2);
+  }
+  mx.fillStyle = 'rgb(0, 46, 25)'; mx.fillRect(0, 0, W, H); // stone: roughness ~0.18, metalness ~0.1
+  const metal = 'rgb(0, 90, 255)';                            // brass: roughness ~0.35, metalness 1
+  const brass = (y0, y1) => {
+    const g = ctx.createLinearGradient(0, y0, 0, y1);
+    g.addColorStop(0, '#f8e7a6'); g.addColorStop(0.45, '#d6a84c'); g.addColorStop(0.62, '#a8792a'); g.addColorStop(1, '#ebc66c');
+    return g;
+  };
+  // double brass border
+  for (const [inset, w] of [[26, 8], [48, 3]]) {
+    ctx.lineWidth = mx.lineWidth = w;
+    ctx.strokeStyle = brass(0, H); mx.strokeStyle = metal;
+    ctx.strokeRect(inset, inset, W - 2 * inset, H - 2 * inset);
+    mx.strokeRect(inset, inset, W - 2 * inset, H - 2 * inset);
+  }
+  // lettering, sized to fit the plate
+  const font = (px) => `600 ${px}px Georgia, 'Times New Roman', Times, serif`;
+  let size = 300;
+  ctx.font = font(size);
+  const fit = (W * 0.8) / ctx.measureText(text).width;
+  if (fit < 1) size = Math.floor(size * fit);
+  ctx.font = mx.font = font(size);
+  ctx.textAlign = mx.textAlign = 'center';
+  ctx.textBaseline = mx.textBaseline = 'middle';
+  const cx = W / 2, cy = H / 2 + size * 0.04;
+  ctx.fillStyle = 'rgba(0, 0, 0, 0.8)';
+  ctx.fillText(text, cx + 5, cy + 7);                         // raised letters cast a small shadow
+  ctx.fillStyle = brass(cy - size * 0.55, cy + size * 0.45);
+  ctx.fillText(text, cx, cy);
+  ctx.lineWidth = 1.5; ctx.strokeStyle = 'rgba(255, 244, 200, 0.5)';
+  ctx.strokeText(text, cx, cy);
+  mx.fillStyle = metal;
+  mx.fillText(text, cx, cy);
+  return { map: c, rm: m };
+}
+
 export function painting({ W = 384, H = 256, seed = 131, palette = [[222, 120, 70], [40, 70, 110], [230, 200, 140], [120, 150, 120]] } = {}) {
   const c = canvas(W, H), ctx = c.getContext('2d');
   const r = rng(seed);

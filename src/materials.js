@@ -230,6 +230,11 @@ export class MaterialLibrary {
     const blackG = TX.granite({ N: 512, base: [22, 22, 24], seed: 47 });
     this._std('graniteBlack', { map: this._tex(blackG.map, 3), roughness: 0.12, metalness: 0.1 });
     this._std('ceramic', { color: 0xf8f8f6, roughness: 0.08, metalness: 0.02 });
+    // house name plate (front of the stair block): granite with brass letters
+    const plate = TX.namePlate({ text: 'Surbhi Bhawan' });
+    const plateMap = this._tex(plate.map), plateRM = this._tex(plate.rm, null, false);
+    for (const t of [plateMap, plateRM]) t.wrapS = t.wrapT = THREE.ClampToEdgeWrapping;
+    this._std('namePlate', { map: plateMap, roughnessMap: plateRM, metalnessMap: plateRM, roughness: 1, metalness: 1 });
     this._std('basinInner', { color: 0xd3d8dc, roughness: 0.12, metalness: 0.05 });
     this._std('screen', { color: 0x0b0c0e, roughness: 0.12, metalness: 0.3 });
     this._std('tvScreen', { color: 0x0e1a2a, emissive: 0x12304f, emissiveIntensity: 0.25, roughness: 0.2 });
