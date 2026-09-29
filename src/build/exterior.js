@@ -285,6 +285,17 @@ export function buildExterior(ctx) {
   // Ground-level feature boxes in front of the stair room
   B.box(15.62, 23.0, 0, 6.3, 0, 0.6, { all: 'ext', py: 'white' });
   B.box(16.9, 17.2, 2.2, 5.4, 0.6, 0.65, 'lightPanel'); // vertical light slit
+  // House name plate "Surbhi Bhawan" beside the light slit: black granite, brass letters,
+  // standing off the wall on hidden spacers
+  {
+    const x0 = 17.75, x1 = 22.55, y0 = 2.85, y1 = 4.85, zf = 0.6; // 4′-10″ × 2′-0″
+    B.box(x0 + 0.5, x1 - 0.5, y0 + 0.5, y1 - 0.5, zf, zf + 0.08, 'steel');
+    B.box(x0, x1, y0, y1, zf + 0.08, zf + 0.2, { all: 'graniteBlack', pz: null });
+    const face = new THREE.Mesh(new THREE.PlaneGeometry(x1 - x0, y1 - y0), get('namePlate'));
+    face.position.set((x0 + x1) / 2, (y0 + y1) / 2, zf + 0.2);
+    face.receiveShadow = true;
+    house.add(face);
+  }
   {
     const s = new THREE.Shape();
     const r = 0.9;
