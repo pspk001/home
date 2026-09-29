@@ -1,7 +1,8 @@
-# 3D Home Viewer — 35′-5″ × 49′-9″ house
+# Surbhi Bhawan — 3D home viewer
 
-An interactive, textured 3D model of the supplied ground-floor plan, dressed with the
-front elevation's facade. Built with **three.js** (WebGL) and plain HTML/CSS/JavaScript.
+An interactive, textured 3D model of Surbhi Bhawan, a 35′-5″ × 49′-9″ house, built from the
+supplied ground-floor plan and dressed with the front elevation's facade. Made with
+**three.js** (WebGL) and plain HTML/CSS/JavaScript.
 
 **Live site:** https://pspk001.github.io/home/
 
@@ -111,6 +112,7 @@ home/
 - **Facade:** colours and features come from the elevation image: sage walls, tan stair tower with tall windows, the white "C" frame around the first-floor terrace, the wood-cladding panel and its frame, the slatted box at the base, the gates, the portico canopy, the parapet with vents and the white railing.
 - **Open double-height space (design change):** the walls between the drawing/dining hall, the kitchen and the old garden are gone, so the three share one space. The garden is paved in with the hall, and the puja room now opens onto it. There is no first-floor slab over this space: it rises about 22 ft to a solid roof with a board-formed concrete soffit. Behind the dining area and the old garden, the rear (east) wall is solid up to door height (7 ft above the floor) and a teak-framed glass wall above it rises to the roof, so the morning sun comes in over the lower wall. The kitchen keeps a tall teak window with sheer curtains. A teak jharokha (bay window) and a French balcony look down from the first floor, and a cascade of glass globes hangs over the dining table. The wash basin moved to the bedroom-2 wall. The config is `VOID` in `src/config.js`.
 - **Living room:** a 9′-wide window onto the portico (no sunshade, since the portico is roofed).
+- **Name plate:** "Surbhi Bhawan" in raised brass letters on a black granite plate (4′-10″ × 2′-0″), beside the light slit at the front of the stair block. The app header uses the same name.
 
 ## Assumptions and limitations
 
