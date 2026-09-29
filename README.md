@@ -11,11 +11,14 @@ front elevation's facade. Built with **three.js** (WebGL) and plain HTML/CSS/Jav
 |---|---|---|
 | ![Dollhouse](docs/dollhouse.jpg) | ![Plan](docs/plan.jpg) | ![Walk](docs/walk-bedroom.jpg) |
 
+![Double-height dining hall](docs/walk-hall.jpg)
+*The dining hall, kitchen and old garden share one double-height space. Behind the dining table the rear wall is solid up to door height, with a tall glass wall above it facing the sunrise.*
+
 ---
 
 ## Open it (no install)
 
-Double-click **`Home-3D-Viewer.html`**. It is one self-contained file (~735 KB) with all code,
+Double-click **`Home-3D-Viewer.html`**. It is one self-contained file (~740 KB) with all code,
 styles and textures inside, so it works offline in any recent Chrome, Edge, Safari or Firefox
 (WebGL 2 required). It also works on phones and tablets.
 
@@ -30,7 +33,7 @@ styles and textures inside, so it works offline in any recent Chrome, Edge, Safa
 | **Rooms list / labels / minimap** | Click any room to fly into it. The info card shows size, area, floor finish and a **Walk inside** button |
 | **Angle** | One-click Front / Left / Back / Right / Top views |
 | **Wall cut** | Slice the whole house at any height (from 1 ft above the floor up to the full house) |
-| **Sun** | Move the sun from 7 AM to 6:30 PM (shadows update) |
+| **Sun** | Move the sun from 7 AM to 6:30 PM (shadows update). As on site, it rises behind the house and sets over the road |
 | **Room labels / Furniture / Auto-rotate** | Toggles |
 | 📷 | Save the current view as a PNG |
 
@@ -84,7 +87,7 @@ home/
    ├─ build/
    │  ├─ structure.js    walls, floors, ceiling slab, staircase, bathroom tiles, kitchen dado
    │  ├─ openings.js     windows (frames, glass, grilles, sills, chajjas) and doors
-   │  ├─ exterior.js     first-floor shell, roof, mumty, C-frame, cladding, gates, garden, street
+   │  ├─ exterior.js     first-floor shell, roof, rear glass wall, mumty, C-frame, cladding, gates, street
    │  └─ furniture.js    beds, wardrobes, sofas, dining, kitchen, toilets, mandir, car, fans…
    └─ viewer/
       ├─ viewer.js       renderer, lights, sky, view modes, room focus, picking
@@ -106,11 +109,14 @@ home/
 - **Furniture:** placed where the furnished plan shows it.
 - **Assumed heights:** 2′ plinth, 11′ clear ground-floor height, 6″ slabs, 7′ door heads, window sills 3′ above the floor.
 - **Facade:** colours and features come from the elevation image: sage walls, tan stair tower with tall windows, the white "C" frame around the first-floor terrace, the wood-cladding panel and its frame, the slatted box at the base, the gates, the portico canopy, the parapet with vents and the white railing.
+- **Open double-height space (design change):** the walls between the drawing/dining hall, the kitchen and the old garden are gone, so the three share one space. The garden is paved in with the hall, and the puja room now opens onto it. There is no first-floor slab over this space: it rises about 22 ft to a solid roof with a board-formed concrete soffit. Behind the dining area and the old garden, the rear (east) wall is solid up to door height (7 ft above the floor) and a teak-framed glass wall above it rises to the roof, so the morning sun comes in over the lower wall. The kitchen keeps a tall teak window with sheer curtains. A teak jharokha (bay window) and a French balcony look down from the first floor, and a cascade of glass globes hangs over the dining table. The wash basin moved to the bedroom-2 wall. The config is `VOID` in `src/config.js`.
+- **Living room:** a 9′-wide window onto the portico (no sunshade, since the portico is roofed).
 
 ## Assumptions and limitations
 
-- The first-floor layout was not provided, so the first floor is an **exterior shell** that matches the elevation (terrace over the portico, stair headroom/mumty, parapets). In walk mode the stairs stop at the first-floor landing.
+- The first-floor layout was not provided, so the first floor is an **exterior shell** that matches the elevation (terrace over the portico, stair headroom/mumty, parapets). In walk mode the stairs stop at the first-floor landing. The first-floor windows and balcony that face the double-height space have sheer curtains, because the rooms behind them are not modelled.
 - The dashed "X" in the entrance lobby is treated as the entrance lobby. It is not modelled as a double-height cut-out.
 - The plan shows no door swings, so doors are shown open and the main door is pushed back against the lobby wall.
-- The plan labels the hall 10′×24′. As drawn, a partition separates the passage, which leaves about 10′×20′ of dining/drawing space. The model follows the drawing.
-- Added for context: a boundary wall behind the garden, the road, footpath, trees and neighbouring compound walls.
+- The plan labels the hall 10′×24′. As drawn, a partition separates the passage, which left about 10′×20′ of dining/drawing space. With the old garden merged in, the hall now runs about 24′ from that partition to the rear wall.
+- Added for context: the road, footpath, trees and neighbouring compound walls.
+- Orientation: the back of the house faces east and the road faces west, so the sun rises behind the house and sets over the road.
