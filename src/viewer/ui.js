@@ -117,7 +117,7 @@ export function initUI(app) {
   $('#shot-btn').addEventListener('click', () => {
     const a = document.createElement('a');
     a.href = app.screenshot();
-    a.download = `home-3d-${app.view}${app.selected ? '-' + app.selected : ''}.png`;
+    a.download = `surbhi-bhawan-${app.view}${app.selected ? '-' + app.selected : ''}.png`;
     document.body.appendChild(a);
     a.click();
     a.remove();
