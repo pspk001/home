@@ -45,6 +45,29 @@ export const PLOT = {
 export const rearZ = (x) => PLOT.rearLeft + (PLOT.rearRight - PLOT.rearLeft) * (x / PLOT.width);
 export const REAR_T = 0.79; // rear wall thickness
 
+// Double-height space shared by the rear of the hall, the kitchen and the old
+// garden: there is no first-floor slab here, so it rises to the roof.
+export const VOID = {
+  x0: 12.231,        // hall side of the bedroom-1 wall
+  x1: 34.581,        // inside face of the east wall
+  zFront: -38.321,   // line of the kitchen / bedroom-2 wall
+  gardenX0: 6.643,   // the old garden starts at the puja-room wall
+  gardenZ: -43.689,  // rear face of the bedroom-1 wall
+  glassSill: LV.gf + 7.0, // rear wall behind the dining area: solid up to door height, glass above
+};
+
+/** Plan outline of the double-height space (inside wall faces) as [x, z] points. */
+export function voidOutline() {
+  return [
+    [VOID.gardenX0, rearZ(VOID.gardenX0) + REAR_T],
+    [VOID.x1, rearZ(VOID.x1) + REAR_T],
+    [VOID.x1, VOID.zFront],
+    [VOID.x0, VOID.zFront],
+    [VOID.x0, VOID.gardenZ],
+    [VOID.gardenX0, VOID.gardenZ],
+  ];
+}
+
 // Staircase (dog-legged, 2 flights of 10 risers from GF to FF)
 export const STAIR = {
   x0: 15.619, x1: 34.581, z0: -8.843, z1: -0.792,

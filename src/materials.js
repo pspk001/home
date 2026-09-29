@@ -113,7 +113,7 @@ export class MaterialLibrary {
     paint('pDuct', 0xb8b4ab);
     paint('reveal', 0xece7de);
     paint('ceiling', 0xf7f6f1, 0.95);
-    paint('ffInterior', 0xe9e6de);
+    paint('ffInterior', 0xefebe3);
 
     // Exterior finishes from the elevation
     extPaint('ext', COLORS.sage);
@@ -159,6 +159,9 @@ export class MaterialLibrary {
     const terr = this._texPair(TX.tiles({ N: 512, n: 4, grout: 3, base: [176, 102, 74], vary: 0.08, noiseAmp: 0.12, groutColor: [190, 180, 165], seed: 33 }), 4);
     this._std('terrace', { map: terr.map, bumpMap: terr.bump, bumpScale: 1.5, roughness: 0.8 });
     this._std('slabTop', { color: 0xa9a59c, map: conc.map, roughness: 0.95 });
+    // board-formed exposed concrete (soffit of the double-height space)
+    const board = this._texPair(TX.planks({ N: 512, rows: 6, minLen: 1, maxLen: 1, gap: 1, joints: false, colors: [[152, 150, 145], [136, 134, 129]], gapColor: [104, 102, 98], grain: 0.5, seed: 93, bevel: false }), 5);
+    this._std('concreteCeil', { map: board.map, bumpMap: board.bump, bumpScale: 0.8, roughness: 0.9 });
 
     await tick('Tiling kitchen & bathrooms');
     // ---- wall tiles -------------------------------------------------------
@@ -178,6 +181,13 @@ export class MaterialLibrary {
     this._std('doorWood', { map: veneer.map, roughness: 0.45 });
     const teak = this._texPair(TX.planks({ N: 512, rows: 4, minLen: 2, maxLen: 2.1, gap: 3, colors: [[112, 66, 34], [96, 56, 28]], gapColor: [50, 28, 14], grain: 1.4, seed: 29 }), 2);
     this._std('doorTeak', { map: teak.map, bumpMap: teak.bump, bumpScale: 2, roughness: 0.4 });
+    // joint-free teak for window and glass-wall frames; the V copy is turned 90° so the
+    // grain runs up the jambs and mullions (world UVs map v to height)
+    const teakF = TX.planks({ N: 512, rows: 4, minLen: 2, maxLen: 2.1, gap: 0, joints: false, colors: [[112, 66, 34], [96, 56, 28]], grain: 1.4, seed: 29, bevel: false });
+    this._std('teakFrame', { map: this._tex(teakF.map, 2), roughness: 0.42 });
+    const teakV = this._tex(teakF.map, 2);
+    teakV.rotation = Math.PI / 2;
+    this._std('teakFrameV', { map: teakV, roughness: 0.42 });
     this._std('doorPVC', { color: 0xdad8d2, roughness: 0.35 });
     this._std('brass', { color: 0xc9a45c, roughness: 0.28, metalness: 1 });
     this._std('steel', { color: 0xc9cdd1, roughness: 0.3, metalness: 1 });
@@ -208,6 +218,8 @@ export class MaterialLibrary {
     };
     curtain('curtainBlue', [120, 146, 176], 81);
     curtain('curtainBeige', [214, 196, 168], 82);
+    const sheerF = TX.fabric({ N: 256, base: [246, 242, 234], seed: 84, weave: 0.03 });
+    this._add('curtainSheer', new THREE.MeshStandardMaterial({ map: this._tex(sheerF.map, 1.2), roughness: 0.95, transparent: true, opacity: 0.86, depthWrite: false, side: THREE.DoubleSide }), { cap: false });
     const walnut = this._texPair(TX.planks({ N: 512, rows: 4, minLen: 1.5, maxLen: 1.6, gap: 0, colors: [[110, 74, 46], [96, 64, 40]], grain: 1.2, seed: 35, bevel: false }), 3);
     this._std('furnWood', { map: walnut.map, roughness: 0.5 });
     const lightWood = this._texPair(TX.planks({ N: 512, rows: 4, minLen: 1.5, maxLen: 1.6, gap: 0, colors: [[200, 166, 120], [186, 150, 104]], grain: 1, seed: 37, bevel: false }), 3);
@@ -226,6 +238,7 @@ export class MaterialLibrary {
     this._std('rug', { map: this._tex(rugTex.map), bumpMap: this._tex(rugTex.bump, null, false), bumpScale: 1, roughness: 1 });
     this.mats.get('rug').map.wrapS = this.mats.get('rug').map.wrapT = THREE.ClampToEdgeWrapping;
     this._std('lampShade', { color: 0xfff1d6, emissive: 0xffd9a0, emissiveIntensity: 0.6, roughness: 0.9 });
+    this._std('globeGlass', { color: 0xfdf8ef, emissive: 0xffdcaa, emissiveIntensity: 0.75, roughness: 0.22, metalness: 0 });
     this._std('lightPanel', { color: 0xffffff, emissive: 0xfff4e0, emissiveIntensity: 1.2, roughness: 0.5 });
     const leaf = TX.foliage({ N: 256, base: [62, 112, 46] });
     this._std('leaf', { map: this._tex(leaf.map, 1.5), roughness: 0.8, flatShading: true });

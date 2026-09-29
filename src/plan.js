@@ -1,3 +1,5 @@
+import { rearZ, REAR_T } from './config.js';
+
 // ---------------------------------------------------------------------------
 // Ground-floor plan data.
 // Every value was measured off the supplied floor-plan drawing
@@ -23,13 +25,12 @@ export const WALLS = [
   { id: 'R-duct', x: [35.021, 35.417], z: [-20.282, -9.635], s0: 'pDuct', s1: 'ext' },
   { id: 'R-stair', x: [34.581, 35.417], z: [-9.635, 0.0], s0: 'pStair', s1: 'ext' },
 
-  // Puja / garden / kitchen (rear strip) -------------------------------------
-  { id: 'puja-R', x: [5.852, 6.643], z: [-48.616, -43.689], s0: 'pPuja', s1: 'ext', open: [{ t: 'arch', a: -47.252, b: -44.173 }] },
+  // Puja / old garden / kitchen (rear strip) --------------------------------
+  // (the old garden is now part of the hall: the walls between hall, garden and
+  //  kitchen are gone, so the puja room and bedroom 1 face the hall directly)
+  { id: 'puja-R', x: [5.852, 6.643], z: [-48.616, -43.689], s0: 'pPuja', s1: 'pHall', open: [{ t: 'arch', a: -47.252, b: -44.173 }] },
   { id: 'G-puja', x: [0.792, 6.643], z: [-43.689, -42.941], s0: 'pPuja', s1: 'accentBed1' },
-  { id: 'G-bed1', x: [6.643, 12.231], z: [-43.689, -42.941], s0: 'ext', s1: 'pBed1', open: [{ t: 'win', a: 7.171, b: 11.263 }] },
-  { id: 'G-hall', x: [12.231, 22.174], z: [-43.689, -42.941], s0: 'ext', s1: 'pHall', open: [{ t: 'win', a: 12.803, b: 16.851 }, { t: 'door', a: 18.259, b: 21.338, door: 'garden' }] },
-  { id: 'K-left', x: [22.174, 22.922], z: [-47.824, -42.941], s0: 'ext', s1: 'pKitchen', open: [{ t: 'kwin', a: -46.416, b: -44.349 }] },
-  { id: 'K-stub', x: [22.174, 22.526], z: [-42.941, -38.321], s0: 'pHall', s1: 'pKitchen', open: [{ t: 'arch', a: -41.797, b: -38.717 }] },
+  { id: 'G-bed1', x: [6.643, 12.231], z: [-43.689, -42.941], s0: 'pHall', s1: 'pBed1', open: [{ t: 'win', a: 7.171, b: 11.263 }] },
 
   // Hall / bedroom 2 / toilets ---------------------------------------------
   { id: 'C8', x: [22.174, 22.922], z: [-38.321, -37.529], s0: 'pHall', s1: 'pBed2' },
@@ -62,7 +63,8 @@ export const WALLS = [
   { id: 'P-right-b', x: [14.827, 15.619], z: [-9.239, 0.0], s0: 'pPortico', s1: 'pStair' },
   { id: 'stub-a', x: [15.619, 16.103], z: [-18.831, -18.039], s0: 'pLobby', s1: 'pLobby' },
   { id: 'stub-b', x: [15.619, 16.103], z: [-9.635, -8.843], s0: 'pLobby', s1: 'pStair' },
-  { id: 'P-top-a', x: [0.792, 12.231], z: [-18.831, -18.039], s0: 'pLiving', s1: 'siding' },
+  // living-room window onto the portico (portico is roofed, so no sunshade)
+  { id: 'P-top-a', x: [0.792, 12.231], z: [-18.831, -18.039], s0: 'pLiving', s1: 'siding', open: [{ t: 'win', a: 2.0, b: 11.0, noChajja: true }] },
   { id: 'P-top-b', x: [12.231, 14.827], z: [-18.831, -18.039], s0: 'pLobby', s1: 'siding' },
 
   // Living / bedroom 1 / hall ---------------------------------------------
@@ -83,7 +85,6 @@ export const DOORS = {
   guest:   { hinge: 'b', side: 1, style: 'wood' },
   toilet1: { hinge: 'a', side: 1, style: 'pvc' },
   toilet2: { hinge: 'a', side: 0, style: 'pvc' },
-  garden:  { hinge: 'a', side: 0, style: 'glass' },
 };
 
 // Rooms: floor rectangles [x0, x1, z0, z1]. `rear:true` rooms run under the
@@ -94,25 +95,24 @@ export const ROOMS = [
   { id: 'lobby', name: 'Entrance Lobby', size: '5′-0″ × 9′-0″ + passage', rects: [[15.619, 20.678, -18.831, -9.635], [12.231, 20.678, -22.922, -18.831]], floor: 'tileMarble', level: 'gf',
     note: 'Main door from the portico. Leads to the stair, guest room, living room.' },
   { id: 'living', name: 'Living Room', size: '11′-0″ × 11′-8″', rects: [[0.792, 11.879, -30.534, -18.831]], floor: 'tileWarm', level: 'gf',
-    note: '3-seater sofa, 2 armchairs, window on the side wall.' },
-  { id: 'hall', name: 'Drawing / Dining Hall', size: '10′-0″ × 24′-0″', rects: [[12.231, 22.174, -42.941, -26.882], [12.231, 20.678, -26.882, -23.274]], floor: 'tileMarble', level: 'gf',
-    note: '6-seater dining, wash basin, door to the garden.' },
+    note: '3-seater sofa, 2 armchairs, a window on the side wall and a wide window onto the portico.' },
+  { id: 'hall', name: 'Drawing / Dining Hall', size: '10′-0″ × 24′-0″ + old garden bay', floor: 'tileMarble', level: 'gf', rear: true,
+    rects: [[12.231, 22.174, -43.689, -26.882], [12.231, 20.678, -26.882, -23.274], [6.643, 22.174, -48.836, -43.689]],
+    note: 'One open space with the kitchen and the old garden. The dining end rises double height to the first-floor roof, lit by a tall glass wall that rises from door height to the roof, facing the sunrise, with a glass-globe chandelier. Wash basin.' },
   { id: 'bed1', name: 'Bedroom 1', size: '11′-0″ × 12′-0″', rects: [[0.792, 11.879, -42.941, -30.93]], floor: 'wood', level: 'gf',
     note: 'Queen bed, wardrobe, TV wall, 2 windows.' },
   { id: 'bed2', name: 'Bedroom 2', size: '12′-0″ × 11′-0″', rects: [[22.526, 34.581, -37.969, -26.882]], floor: 'wood', level: 'gf',
     note: 'Queen bed with side tables, wardrobe, TV wall.' },
   { id: 'guest', name: 'Guest Room', size: '10′-6″ × 11′-0″', rects: [[21.03, 31.59, -20.282, -9.635]], floor: 'woodLight', level: 'gf',
     note: 'Queen bed, wardrobe, attached toilet.' },
-  { id: 'kitchen', name: 'Kitchen', size: '12′-0″ × 8′-0″', rects: [[22.922, 34.581, -48.176, -38.321]], floor: 'tileKitchen', level: 'gf', rear: true,
-    note: 'L-shaped granite counter, sink, hob and chimney.' },
+  { id: 'kitchen', name: 'Kitchen', size: '12′-0″ × 8′-0″', rects: [[22.174, 34.581, -48.176, -38.321]], floor: 'tileKitchen', level: 'gf', rear: true,
+    note: 'Open to the dining hall, double height. L-shaped granite counter, sink, hob and chimney.' },
   { id: 'toilet1', name: 'Common Toilet', size: '7′-0″ × 5′-6″', rects: [[21.03, 28.07, -26.53, -21.074]], floor: 'tileBath', level: 'gf',
     note: 'Door from the dining hall.' },
   { id: 'toilet2', name: 'Attached Toilet', size: '6′-0″ × 5′-6″', rects: [[28.422, 34.581, -26.53, -21.074]], floor: 'tileBath', level: 'gf',
     note: 'Attached to the guest room, ventilator to the duct.' },
   { id: 'puja', name: 'Puja Room', size: '5′-0″ × 4′-0″', rects: [[0.792, 5.852, -48.836, -43.689]], floor: 'marble', level: 'gf', rear: true,
-    note: 'Opens onto the garden.' },
-  { id: 'garden', name: 'Garden Area', size: '15′-6″ × 4′-6″', rects: [[6.643, 22.174, -48.836, -43.689]], floor: 'grass', level: 'garden', rear: true,
-    note: 'Open-to-sky courtyard behind the hall.' },
+    note: 'Opens onto the back of the hall (the old garden).' },
   { id: 'stair', name: 'Staircase', size: '19′-0″ × 8′-0″', rects: [[15.619, 34.581, -8.843, -0.792]], floor: 'graniteGrey', level: 'gf',
     note: 'Dog-legged stair, 20 risers to the first floor.' },
   { id: 'duct', name: 'Pipe Line Area', size: '2′-2″ × 10′-8″', rects: [[32.382, 35.021, -20.282, -9.635]], floor: 'concrete', level: 'duct',
@@ -139,7 +139,11 @@ export function roomAnchor(room) {
 }
 
 export function roomArea(room) {
-  return room.rects.reduce((s, r) => s + (r[1] - r[0]) * (r[3] - r[2]), 0);
+  // rectangles that run under the slanted rear wall are measured to its inside face
+  return room.rects.reduce((s, [x0, x1, z0, z1]) => {
+    const back = room.rear && z0 < rearZ(x0) + 1 ? (rearZ(x0) + rearZ(x1)) / 2 + REAR_T : z0;
+    return s + (x1 - x0) * (z1 - back);
+  }, 0);
 }
 
 export function findRoomAt(x, z) {
