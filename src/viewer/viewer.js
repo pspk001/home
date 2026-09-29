@@ -19,15 +19,14 @@ export const WALK_SPOTS = {
   portico: [12.4, -1.6, 6.0, -12, -0.1],
   lobby: [18.6, -19.8, 17.2, -9.0, -0.12],
   living: [10.4, -20.2, 2.5, -27, -0.12],
-  hall: [16.8, -24.8, 16.8, -40, -0.1],
+  hall: [17.2, -29.3, 17.2, -46.5, 0.2],
   bed1: [8.8, -33.4, 2.5, -41, -0.14],
   bed2: [24.4, -29.2, 32, -35, -0.14],
   guest: [22.6, -11.2, 30, -17, -0.14],
-  kitchen: [24.0, -39.4, 31, -45, -0.3],
+  kitchen: [22.3, -39.3, 32.0, -44.2, 0.26],
   toilet1: [22.1, -24.9, 28, -23.4, -0.5],
   toilet2: [30.5, -22.0, 34, -24.4, -0.5],
-  puja: [11.6, -45.3, 3.3, -46.6, -0.1],
-  garden: [21.0, -44.6, 8, -46, -0.16],
+  puja: [10.2, -44.9, 3.3, -46.0, -0.05],
   stair: [17.6, -6.9, 30, -6.9, 0.05],
 };
 
@@ -143,18 +142,22 @@ export class App extends EventTarget {
     this.setSunHour(15.5);
   }
 
-  /** hour 6..19; +z is treated as south (road side), +x as east. */
+  /**
+   * hour 6..19. As on site, the sun rises behind the house (the back / old-garden
+   * side, −z, is east) and sets over the road (+z is west), so +x is south.
+   */
   setSunHour(h) {
     this.sunHour = h;
     const t = THREE.MathUtils.clamp((h - 6) / 12, 0, 1);
-    const az = THREE.MathUtils.degToRad(90 + t * 180);
+    const az = THREE.MathUtils.degToRad(90 + t * 180); // compass bearing: 90 = east, 180 = south, 270 = west
     const alt = THREE.MathUtils.degToRad(8 + Math.sin(t * Math.PI) * 56);
-    const dir = new THREE.Vector3(Math.cos(alt) * Math.sin(az), Math.sin(alt), -Math.cos(alt) * Math.cos(az));
+    // north = −x, east = −z, south = +x, west = +z
+    const dir = new THREE.Vector3(-Math.cos(alt) * Math.cos(az), Math.sin(alt), -Math.cos(alt) * Math.sin(az));
     this.sun.position.copy(this.sun.target.position).addScaledVector(dir, 150);
     this.sky.material.uniforms.sunPosition.value.copy(dir);
     const warm = 1 - Math.sin(t * Math.PI);
     this.sun.color.setHSL(0.09, 0.35 + warm * 0.5, 0.92 - warm * 0.15);
-    this.sun.intensity = 1.6 + Math.sin(t * Math.PI) * 1.6;
+    this.sun.intensity = (1.6 + Math.sin(t * Math.PI) * 1.6) * (this.sunBoost || 1);
     this.renderer.shadowMap.needsUpdate = true;
     this.invalidate();
   }
@@ -521,11 +524,15 @@ export class App extends EventTarget {
     this.controls.enabled = false;
     this.controls.autoRotate = false;
     this.tweens.cancel('cam');
-    this.setCut(LV.ffCeil + 0.25, false); // hide only the roof-top, so ceilings & stairwell read correctly
+    this.setCut(Infinity, false); // nothing sliced: the double-height space rises to the roof
     this._setFov(66);
-    this.hemi.intensity = 1.2;
-    this.scene.environmentIntensity = 0.6;
-    this.roomLight.intensity = 5.5;
+    // indoors: less fill light and a stronger sun, so the patches of sunlight coming
+    // through the windows (and the rear glass wall in the morning) read clearly
+    this.hemi.intensity = 0.55;
+    this.scene.environmentIntensity = 0.32;
+    this.roomLight.intensity = 3.8;
+    this.sunBoost = 2.3;
+    this.setSunHour(this.sunHour);
     this._highlight.visible = false;
     this._syncLabels();
     const yaw = Math.atan2(-(spot[2] - spot[0]), -(spot[3] - spot[1]));
@@ -569,6 +576,8 @@ export class App extends EventTarget {
     this.hemi.intensity = 0.95;
     this.scene.environmentIntensity = 0.45;
     this.roomLight.intensity = 0;
+    this.sunBoost = 1;
+    this.setSunHour(this.sunHour);
     // continue orbiting around a point in front of where we stood
     const dir = this.walk.lookDir();
     this.controls.target.copy(this.camera.position).addScaledVector(dir, 8);

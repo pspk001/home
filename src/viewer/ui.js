@@ -215,6 +215,6 @@ function buildMinimap(app) {
 function shortName(room) {
   return {
     portico: 'Portico', lobby: 'Lobby', living: 'Living', hall: 'Dining', bed1: 'Bed 1', bed2: 'Bed 2',
-    guest: 'Guest', kitchen: 'Kitchen', toilet1: 'WC', toilet2: 'WC', puja: 'Puja', garden: 'Garden', stair: 'Stair',
+    guest: 'Guest', kitchen: 'Kitchen', toilet1: 'WC', toilet2: 'WC', puja: 'Puja', stair: 'Stair',
   }[room.id] || room.name;
 }
