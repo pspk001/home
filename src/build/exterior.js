@@ -1,6 +1,6 @@
 import * as THREE from 'three';
 import { Batcher, extrudeXZ, regroup, roundedRect, worldUV } from '../geometry.js';
-import { LV, PLOT, rearZ, REAR_T, VOID, voidOutline } from '../config.js';
+import { LV, PLOT, rearZ, REAR_T, VOID, voidOutline, DUCT, ductOutline, inDuct } from '../config.js';
 
 // ---------------------------------------------------------------------------
 // Everything outside the ground-floor rooms: the first-floor shell and roof
@@ -116,8 +116,14 @@ export function buildExterior(ctx) {
   wallRun(B, { x: [17.5, 25.3], z: [-T, 0], y0: FF0, y1: FF1, s0: 'ffInterior', s1: 'extTan', end: 'extTan',
     open: [{ a: 19.8, b: 22.8, sill: FF0 + 2.0, head: FF1 - 0.6 }] });
   wallRun(B, { x: [25.3, PLOT.width], z: [-T, 0], y0: FF0, y1: FF1, s0: 'ffInterior', s1: 'ext' });
-  // right (party) wall
-  wallRun(B, { x: [PLOT.width - T, PLOT.width], z: [rearZ(PLOT.width), -T], y0: FF0, y1: FF1, s0: 'ffInterior', s1: 'ext' });
+  // right (party) wall; beside the pipe line shaft it is only as thick as the
+  // ground-floor duct wall, so the shaft keeps its size all the way up
+  {
+    const W = PLOT.width, za = DUCT.z0 - DUCT.wall, zb = DUCT.z1 + DUCT.wall;
+    wallRun(B, { x: [W - T, W], z: [rearZ(W), za], y0: FF0, y1: FF1, s0: 'ffInterior', s1: 'ext' });
+    wallRun(B, { x: [DUCT.x1, W], z: [za, zb], y0: FF0, y1: FF1, s0: 'pDuct', s1: 'ext', end: null });
+    wallRun(B, { x: [W - T, W], z: [zb, -T], y0: FF0, y1: FF1, s0: 'ffInterior', s1: 'ext' });
+  }
   // walls around the double-height space (over the dining end, the old garden and the kitchen)
   buildVoidWalls(B);
   // slanted rear wall. Behind the dining area, the old garden and the kitchen it is a
@@ -172,8 +178,9 @@ export function buildExterior(ctx) {
     [0, -18.039], [17.5, -18.039], [17.5, -T], [PLOT.width, -T], [PLOT.width, rearZ(PLOT.width)], [0, rearZ(0)],
   ];
   const vp = voidOutline();
-  const roofGeo = extrudeXZ(roofOutline, [vp], FF1, LV.roof);
-  const roof = new THREE.Mesh(roofGeo, [get('terrace'), get('ceiling'), get('slabEdge')]);
+  // (the pipe line shaft stays open to the sky; its slab edge is plastered like the shaft)
+  const roofGeo = regroup(extrudeXZ(roofOutline, [vp, ductOutline()], FF1, LV.roof), (gi, c) => (gi === 2 && inDuct(c.x, c.z) ? 3 : gi));
+  const roof = new THREE.Mesh(roofGeo, [get('terrace'), get('ceiling'), get('slabEdge'), get('pDuct')]);
   roof.castShadow = roof.receiveShadow = true;
   house.add(roof);
   // solid roof over the double-height space, its soffit left as board-formed concrete
@@ -192,9 +199,10 @@ export function buildExterior(ctx) {
   parapet(0, pt, rearZ(0), -18.039);
   parapet(0, 17.5, -18.039 - pt, -18.039);
   parapet(17.5, 17.5 + pt, -18.039, -9.635);
-  parapet(PLOT.width - pt, PLOT.width, rearZ(PLOT.width), -9.635);
+  parapet(PLOT.width - pt, PLOT.width, rearZ(PLOT.width), DUCT.z0 - pt); // then round the pipe line shaft (buildDuctShaft)
   const rearPar = (xa, xb) => B.prism([[xa, rearZ(xa) + pt], [xb, rearZ(xb) + pt], [xb, rearZ(xb)], [xa, rearZ(xa)]], P0, P1, { top: 'white', bottom: null, sides: ['ext', 'ext', 'ext', 'ext'] });
   rearPar(0, PLOT.width);
+  buildDuctShaft(B, pt);
 
   // ---- mumty (stair head-room) ---------------------------------------------
   const M0 = LV.roof, M1 = LV.mumtyCeil;
@@ -378,12 +386,11 @@ function buildVoidWalls(B) {
   // walls above the bedroom-1 and bedroom-2 walls, facing each other across the hall;
   // they run forward to the back wall of the balcony
   const zB = VOID.balconyBack, zE = VOID.hallFront, hx = VOID.hallX1;
-  // one big window in each (6 ft tall, sill 2 ft above the first floor)
-  const win = (a, b, curtain) => ({ a, b, sill: FF0 + 2, head: FF0 + 8, frame: wood, glass: 'glass', curtain });
+  // one big window on the bedroom-1 side (6 ft tall, sill 2 ft above the first floor),
+  // ending short of the balcony; the bedroom-2 side is a plain wall
   wallRun(B, { x: [11.879, VOID.x0], z: [-42.941, zB], y0: FF0, y1: FF1, s0: I, s1: I, end: I,
-    open: [win(-40.4, -33.2, -1)] });
-  wallRun(B, { x: [hx, hx + 0.5], z: [zR, zB], y0: FF0, y1: FF1, s0: I, s1: I, end: I,
-    open: [win(-36.9, -31.5, 1)] });
+    open: [{ a: -40.4, b: -33.2, sill: FF0 + 2, head: FF0 + 8, frame: wood, glass: 'glass', curtain: -1 }] });
+  wallRun(B, { x: [hx, hx + 0.5], z: [zR, zB], y0: FF0, y1: FF1, s0: I, s1: I, end: I });
 
   // front wall over the kitchen / bedroom-2 line
   wallRun(B, { x: [hx, PLOT.width - T], z: [zF, zR], y0: FF0, y1: FF1, s0: I, s1: I, end: I });
@@ -403,6 +410,30 @@ function buildVoidWalls(B) {
     }
     GB.box(VOID.x0 + 0.05, hx - 0.05, FF0 + 0.2, FF0 + 3.33, zr - 0.012, zr + 0.012, 'glass');
   }
+}
+
+// ---------------------------------------------------------------------------
+// Pipe line area: the plumbing shaft beside the guest room is open to the sky, as in
+// the original drawing. The slabs are cut round it (structure.js and the roof above);
+// here are its walls on the first floor and a parapet round the opening on the roof.
+// ---------------------------------------------------------------------------
+function buildDuctShaft(B, pt) {
+  const { x0, x1, z0, z1, wall: t } = DUCT;
+  const I = 'ffInterior', D = 'pDuct', W = PLOT.width;
+  // first floor: guest-room side, rear and front (stair side) walls; the party wall is built with the shell
+  B.box(x0 - t, x0, FF0, FF1, z0 - t, z1 + t, { all: I, px: D, py: null, ny: null });
+  B.box(x0, x1, FF0, FF1, z0 - t, z0, { all: I, pz: D, nx: null, px: null, py: null, ny: null });
+  B.box(x0, x1, FF0, FF1, z1, z1 + t, { all: I, nz: D, nx: null, px: null, py: null, ny: null });
+  // roof: parapet on three sides (the mumty wall closes the front), sage outside,
+  // plastered inside like the shaft, with a white coping
+  const P0 = LV.roof, P1 = LV.parapet - 0.25;
+  const cap = (xa, xb, za, zb) => B.box(xa - 0.05, xb + 0.05, P1, LV.parapet, za - 0.05, zb + 0.05, 'white');
+  B.box(x0 - pt, x0, P0, P1, z0 - pt, z1, { all: 'ext', px: D, pz: null, py: null, ny: null });
+  B.box(x0, x1, P0, P1, z0 - pt, z0, { all: 'ext', pz: D, nx: null, px: null, py: null, ny: null });
+  B.box(x1, W, P0, P1, z0 - pt, z1, { all: 'ext', nx: D, nz: null, pz: null, py: null, ny: null });
+  cap(x0 - pt, x0, z0 - pt, z1);
+  cap(x0, x1, z0 - pt, z0);
+  cap(x1, W, z0 - pt, z1);
 }
 
 // ---------------------------------------------------------------------------

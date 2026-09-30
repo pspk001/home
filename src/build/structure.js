@@ -1,6 +1,6 @@
 import * as THREE from 'three';
 import { Batcher, extrudeXZ, regroup } from '../geometry.js';
-import { LV, OPENING, PLOT, rearZ, REAR_T, STAIR, VOID, voidOutline } from '../config.js';
+import { LV, OPENING, PLOT, rearZ, REAR_T, STAIR, VOID, voidOutline, ductOutline, inDuct } from '../config.js';
 import { WALLS, ROOMS } from '../plan.js';
 
 const EXTERIOR = new Set(['ext', 'extTan', 'pPortico', 'siding']);
@@ -28,7 +28,7 @@ export function wallPieces(w) {
 
 // Only faces that can actually be seen are emitted: faces sandwiched between
 // two touching boxes would z-fight (and flash the dark section colour).
-function faceMats(w, vertical, lower, { endLo, endHi, top, bottom }) {
+function faceMats(w, vertical, lower, { endLo, endHi, top, bottom, ductLo, ductHi }) {
   let s0 = w.s0, s1 = w.s1;
   if (lower) {
     if (EXTERIOR.has(s0)) s0 = 'plinth';
@@ -36,7 +36,8 @@ function faceMats(w, vertical, lower, { endLo, endHi, top, bottom }) {
   }
   const extSide = EXTERIOR.has(w.s0) ? w.s0 : EXTERIOR.has(w.s1) ? w.s1 : null;
   const end = extSide ? (lower ? 'plinth' : extSide) : 'reveal';
-  const lo = endLo ? end : null, hi = endHi ? end : null;
+  // an end that looks into the pipe line shaft takes the shaft's plaster
+  const lo = endLo ? (ductLo ? 'pDuct' : end) : null, hi = endHi ? (ductHi ? 'pDuct' : end) : null;
   const py = top ? 'reveal' : null, ny = bottom ? 'reveal' : null;
   return vertical
     ? { nx: s0, px: s1, nz: lo, pz: hi, py, ny }
@@ -70,6 +71,8 @@ export function buildStructure(ctx) {
       return !(vertical ? solidAt(tc, q, w0) : solidAt(q, tc, w0));
     };
     const freeLo = freeEnd(A0, -1), freeHi = freeEnd(A1, 1);
+    const ductEnd = (a, dir) => (vertical ? inDuct(tc, a + dir * 0.06, 0) : inDuct(a + dir * 0.06, tc, 0));
+    const ductLo = ductEnd(A0, -1), ductHi = ductEnd(A1, 1);
     for (const p of pieces) {
       const spans = [];
       if (p.y0 < LV.gf && p.y1 > LV.gf) spans.push([p.y0, LV.gf, true], [LV.gf, p.y1, false]);
@@ -81,7 +84,7 @@ export function buildStructure(ctx) {
       const endHi = solid && Math.abs(p.a1 - A1) < 1e-3 && freeHi;
       for (const [y0, y1, lower] of spans) {
         const m = faceMats(w, vertical, lower, {
-          endLo, endHi,
+          endLo, endHi, ductLo, ductHi,
           top: p.sill ? y1 === p.y1 : false,
           bottom: p.lintel ? y0 === p.y0 : false,
         });
@@ -168,10 +171,12 @@ export function buildStructure(ctx) {
   }
 
   // ---- ground-floor ceiling / first-floor slab --------------------------------
-  // (open over the stair and over the double-height space at the rear)
+  // (open over the stair, over the double-height space at the rear and over the
+  //  pipe line shaft, which rises to the sky)
   const outline = [[0, 0], [PLOT.width, 0], [PLOT.width, rearZ(PLOT.width)], [0, rearZ(0)]];
   const stairHole = [[STAIR.firstRiser, -8.843], [STAIR.x1, -8.843], [STAIR.x1, -0.792], [STAIR.firstRiser, -0.792]];
-  // the slab edge round the double-height space is left as exposed concrete
+  // the slab edge round the double-height space is left as exposed concrete;
+  // inside the shaft it is plastered like the shaft walls
   const vo = voidOutline();
   const onVoidEdge = (c) => vo.some((p, i) => {
     const q = vo[(i + 1) % vo.length];
@@ -179,8 +184,9 @@ export function buildStructure(ctx) {
     const t = Math.max(0, Math.min(1, ((c.x - p[0]) * dx + (c.z - p[1]) * dz) / (dx * dx + dz * dz)));
     return Math.hypot(c.x - (p[0] + t * dx), c.z - (p[1] + t * dz)) < 0.05;
   });
-  const slabGeo = regroup(extrudeXZ(outline, [stairHole, vo], LV.gfCeil, LV.ff), (gi, c) => (gi === 2 && onVoidEdge(c) ? 3 : gi));
-  const slab = new THREE.Mesh(slabGeo, [mats.get('slabTop'), mats.get('ceiling'), mats.get('slabEdge'), mats.get('concreteCeil')]);
+  const slabGeo = regroup(extrudeXZ(outline, [stairHole, vo, ductOutline()], LV.gfCeil, LV.ff),
+    (gi, c) => (gi !== 2 ? gi : onVoidEdge(c) ? 3 : inDuct(c.x, c.z) ? 4 : 2));
+  const slab = new THREE.Mesh(slabGeo, [mats.get('slabTop'), mats.get('ceiling'), mats.get('slabEdge'), mats.get('concreteCeil'), mats.get('pDuct')]);
   slab.name = 'gf-ceiling-slab';
   slab.castShadow = slab.receiveShadow = true;
   slab.userData.ceiling = true;
