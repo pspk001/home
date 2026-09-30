@@ -120,8 +120,8 @@ export function buildExterior(ctx) {
   wallRun(B, { x: [PLOT.width - T, PLOT.width], z: [rearZ(PLOT.width), -T], y0: FF0, y1: FF1, s0: 'ffInterior', s1: 'ext' });
   // walls around the double-height space (over the dining end, the old garden and the kitchen)
   buildVoidWalls(B);
-  // slanted rear wall. Behind the dining area and the old garden it is a glass wall
-  // (buildGlassWall); the kitchen gets a tall teak window with sheer curtains.
+  // slanted rear wall. Behind the dining area, the old garden and the kitchen it is a
+  // glass wall (buildGlassWall).
   // endA / endB: face at the run's start / end (null where it abuts the glass wall)
   const rearRun = (xa, xb, wins, endA = 'ext', endB = 'ext') => {
     let cur = xa;
@@ -161,7 +161,6 @@ export function buildExterior(ctx) {
     seg(cur, xb, FF0, FF1, [cur === xa ? endA : 'ext', endB]);
   };
   rearRun(0, VOID.gardenX0, [[2.2, 4.6]], 'ext', null);
-  rearRun(22.174, PLOT.width, [[25.8, 31.2, true]], null, 'ext');
   buildGlassWall(B);
 
   // FF floor finish (inside) and terrace tiles
@@ -360,8 +359,8 @@ export function buildExterior(ctx) {
 }
 
 // ---------------------------------------------------------------------------
-// Double-height space: first-floor walls around it, with a French balcony and a
-// projecting teak window (jharokha) that look down into it.
+// Double-height space: first-floor walls around it, and a balcony over the hall
+// that looks down into it.
 // ---------------------------------------------------------------------------
 function buildVoidWalls(B) {
   const I = 'ffInterior';
@@ -376,20 +375,25 @@ function buildVoidWalls(B) {
     open: [{ a: 8.0, b: 11.4, sill: FF0 + 3, head: FF0 + 7.5, frame: wood, glass: 'glass', curtain: 1 }] });
   // wall beside the puja room
   wallRun(B, { x: [5.852, VOID.gardenX0], z: [rearZ(VOID.gardenX0), VOID.gardenZ], y0: FF0, y1: FF1, s0: I, s1: I, end: I });
-  // wall above the bedroom-1 / hall wall
-  wallRun(B, { x: [11.879, VOID.x0], z: [-42.941, zF], y0: FF0, y1: FF1, s0: I, s1: I, end: I,
-    open: [{ a: -41.8, b: -39.2, sill: FF0 + 3, head: FF0 + 7.5, frame: wood, glass: 'glass', curtain: -1 }] });
+  // walls above the bedroom-1 and bedroom-2 walls, facing each other across the hall;
+  // they run forward to the back wall of the balcony
+  const zB = VOID.balconyBack, zE = VOID.hallFront, hx = VOID.hallX1;
+  const win = (a, b, curtain) => ({ a, b, sill: FF0 + 3, head: FF0 + 7.5, frame: wood, glass: 'glass', curtain });
+  wallRun(B, { x: [11.879, VOID.x0], z: [-42.941, zB], y0: FF0, y1: FF1, s0: I, s1: I, end: I,
+    open: [win(-41.8, -39.2, -1), win(-37.0, -34.4, -1)] });
+  wallRun(B, { x: [hx, hx + 0.5], z: [zR, zB], y0: FF0, y1: FF1, s0: I, s1: I, end: I,
+    open: [win(-37.0, -34.4, 1)] });
 
-  // front wall over the kitchen / bedroom-2 line: French balcony (over the hall) + jharokha (over the kitchen)
-  const bal = { a: 14.3, b: 20.3, sill: FF0 + 0.05, head: FF0 + 7.5 };
-  const jh = { a: 25.3, b: 31.3, sill: FF0 + 2.6, head: FF0 + 7.6 };
-  wallRun(B, { x: [11.879, PLOT.width - T], z: [zF, zR], y0: FF0, y1: FF1, s0: I, s1: I, end: I,
-    open: [{ ...bal, frame: false, glass: false }, { ...jh, frame: false, glass: false }] });
+  // front wall over the kitchen / bedroom-2 line
+  wallRun(B, { x: [hx, PLOT.width - T], z: [zF, zR], y0: FF0, y1: FF1, s0: I, s1: I, end: I });
 
-  // -- French balcony: glazed teak doors, glass railing on the void face -------
+  // -- Balcony over the hall: back wall with glazed teak doors, deck, glass railing --
   {
+    const bal = { a: 15.0, b: 19.4, sill: FF0 + 0.05, head: FF0 + 7.5 };
+    wallRun(B, { x: [11.879, hx + 0.5], z: [zB, zB + 0.5], y0: FF0, y1: FF1, s0: I, s1: I, end: I,
+      open: [{ ...bal, frame: false, glass: false }] });
     const { a, b, sill, head } = bal;
-    const zc = zF + 0.25, fd = 0.3;
+    const zc = zB + 0.25, fd = 0.3;
     const fr = (x0, x1, y0, y1) => tb(x0, x1, y0, y1, zc - fd / 2, zc + fd / 2);
     fr(a, a + 0.25, sill, head); fr(b - 0.25, b, sill, head); fr(a, b, head - 0.25, head);
     // two leaves, each with 2 × 3 panes
@@ -405,67 +409,30 @@ function buildVoidWalls(B) {
       for (const f of [0.42, 0.72]) tb(x0, x1, y0 + (y1 - y0) * f - 0.05, y0 + (y1 - y0) * f + 0.05, zc - 0.04, zc + 0.04);
       GB.box(x0 + 0.2, x1 - 0.2, y0 + 0.5, y1 - 0.2, zc - 0.015, zc + 0.015, 'glass');
     }
-    sheer(false, zR + 0.15, a + 0.1, b - 0.1, sill + 0.1, head - 0.05);
-    // railing across the opening
-    const zr = zF - 0.12;
-    tb(a - 0.15, b + 0.15, sill + 3.35, sill + 3.55, zr - 0.13, zF + 0.02);   // handrail
-    tb(a - 0.05, b + 0.05, sill, sill + 0.18, zr - 0.08, zF);                  // shoe rail
-    for (const x of [a + 0.05, (a + b) / 2, b - 0.05]) B.box(x - 0.05, x + 0.05, sill, sill + 3.35, zr - 0.05, zr + 0.05, 'steel');
-    GB.box(a + 0.1, b - 0.1, sill + 0.2, sill + 3.33, zr - 0.012, zr + 0.012, 'glass');
-  }
-
-  // -- Jharokha: a teak bay window cantilevered into the void -------------------
-  {
-    const { a, b, sill, head } = jh;
-    const D = 1.6, zo = zF - D;              // projection and outer face
-    const p = 0.25;                          // post size
-    tb(a - 0.25, b + 0.25, sill - 0.4, sill, zo - 0.15, zF);                    // floor / seat board
-    B.box(a, b, sill - 1.0, sill - 0.4, zo + 0.05, zF, 'furnWood');                     // apron
-    tb(a - 0.05, b + 0.05, sill - 1.12, sill - 1.0, zo, zF);                   // apron trim
-    tb(a - 0.45, b + 0.45, head, head + 0.22, zo - 0.45, zF);                   // hood
-    B.box(a - 0.3, b + 0.3, head + 0.22, head + 0.36, zo - 0.3, zF, 'furnWood');         // hood cap
-    tb(a - 0.45, b + 0.45, head - 0.3, head, zo - 0.45, zo - 0.33);             // fascia
-    for (const x of [a - 0.25, b]) tb(x, x + p, sill, head, zo - 0.15, zo + 0.1); // corner posts
-    // front: rails, mullions, transom, glass
-    tb(a, b, sill, sill + 0.22, zo - 0.1, zo + 0.08);
-    tb(a, b, head - 0.22, head, zo - 0.1, zo + 0.08);
-    for (let i = 1; i < 3; i++) { const x = a + ((b - a) * i) / 3; tb(x - 0.08, x + 0.08, sill, head, zo - 0.08, zo + 0.06); }
-    tb(a, b, head - 1.45, head - 1.33, zo - 0.08, zo + 0.06);
-    GB.box(a, b, sill + 0.22, head - 0.22, zo - 0.015, zo + 0.015, 'glass');
-    // sides: rails + glass
-    for (const x of [a - 0.25, b]) {
-      tb(x, x + p, sill, sill + 0.22, zo + 0.1, zF);
-      tb(x, x + p, head - 0.22, head, zo + 0.1, zF);
-      tb(x, x + p, head - 1.45, head - 1.33, zo + 0.1, zF);
-      GB.box(x + p / 2 - 0.015, x + p / 2 + 0.015, sill + 0.22, head - 0.22, zo + 0.1, zF, 'glass');
+    sheer(false, zB + 0.65, a + 0.1, b - 0.1, sill + 0.1, head - 0.05);
+    // wooden deck on the slab, and a glass railing with a teak handrail along the edge
+    B.box(VOID.x0, hx, FF0, FF0 + 0.05, zE, zB, { py: 'wood', all: 'wood', ny: null });
+    const zr = zE + 0.12;
+    tb(VOID.x0, hx, FF0 + 3.35, FF0 + 3.55, zE - 0.02, zr + 0.13);   // handrail
+    tb(VOID.x0, hx, FF0, FF0 + 0.18, zE, zr + 0.08);                  // shoe rail
+    const step = (hx - VOID.x0 - 0.2) / 4;
+    for (let i = 0; i <= 4; i++) {
+      const x = VOID.x0 + 0.1 + i * step;
+      B.box(x - 0.05, x + 0.05, FF0, FF0 + 3.35, zr - 0.05, zr + 0.05, 'steel');
     }
-    // window seat cushion, and a curtain at the back of the bay
-    B.box(a + 0.2, b - 0.2, sill, sill + 0.28, zo + 0.25, zF - 0.1, 'sofaAccent');
-    sheer(false, zR + 0.12, a + 0.1, b - 0.1, sill + 0.1, head - 0.05);
-    // carved brackets under the bay
-    const bracket = new THREE.Shape();
-    bracket.moveTo(0, 0); bracket.lineTo(0, 1.7); bracket.lineTo(-1.35, 1.7); bracket.quadraticCurveTo(-0.35, 1.25, 0, 0);
-    const bg = new THREE.ExtrudeGeometry(bracket, { depth: 0.22, bevelEnabled: false, curveSegments: 6 });
-    bg.rotateY(-Math.PI / 2);
-    worldUV(bg);
-    for (const x of [a + 0.35, (a + b) / 2, b - 0.35]) {
-      const m = new THREE.Mesh(bg.clone(), CTX.mats.get(wood));
-      m.position.set(x + 0.11, sill - 1.12 - 1.7, zF);
-      m.castShadow = m.receiveShadow = true;
-      CTX.house.add(m);
-    }
+    GB.box(VOID.x0 + 0.05, hx - 0.05, FF0 + 0.2, FF0 + 3.33, zr - 0.012, zr + 0.012, 'glass');
   }
 }
 
 // ---------------------------------------------------------------------------
-// Glass wall in the rear (east) wall behind the dining area and the old garden.
-// Below door height the wall is solid (structure.js); from there the glass rises
-// to the roof, crossed by the first-floor slab edge, so the morning sun comes
+// Glass wall in the rear (east) wall behind the dining area, the old garden and the
+// kitchen. Below door height the wall is solid (structure.js); from there the glass
+// rises to the roof, crossed by the first-floor slab edge, so the morning sun comes
 // into the double-height space. Teak frames.
 // ---------------------------------------------------------------------------
 function buildGlassWall(B) {
-  const x0 = VOID.gardenX0, x1 = 22.174;       // the bay in the rear wall
-  const g0 = x0 + 0.6, g1 = x1 - 0.6;           // glazed width between two piers
+  const x0 = VOID.gardenX0, x1 = PLOT.width;     // from the puja-room wall to the corner
+  const g0 = x0 + 0.6, g1 = VOID.x1 - 0.5;        // glazed width between two piers
   const sill = VOID.glassSill, head = FF1 - 0.7; // bottom / top of the glazing
   const band0 = LV.gfCeil, band1 = FF0;         // first-floor slab edge crossing the glass
   const rail = teak(1, 0), post = teak(0, 1);
@@ -475,7 +442,7 @@ function buildGlassWall(B) {
     { top: m, bottom: m, sides: [m, m, m, m] });
   const full = (xa, xb) => [[xa, rearZ(xa) + REAR_T], [xb, rearZ(xb) + REAR_T], [xb, rearZ(xb)], [xa, rearZ(xa)]];
   // piers at both ends, below and above the slab edge: one end is the jamb, the other abuts the rear wall
-  for (const [a, b, jA, jB] of [[x0, g0, null, 'ext'], [g1, x1, 'ext', null]]) {
+  for (const [a, b, jA, jB] of [[x0, g0, null, 'ext'], [g1, x1, 'ext', 'ext']]) {
     B.prism(full(a, b), sill, band0, { top: null, bottom: null, sides: ['pHall', jB, 'ext', jA] });
     B.prism(full(a, b), band1, FF1, { top: null, bottom: null, sides: ['ffInterior', jB, 'ext', jA] });
   }
@@ -487,7 +454,7 @@ function buildGlassWall(B) {
   sl(g1 - 0.22, g1, sill, head, c, 0.3, post);
   for (const [y0, y1] of [[sill, sill + 0.22], [band0 - 0.2, band0], [band1, band1 + 0.2], [head - 0.2, head]]) sl(g0, g1, y0, y1, c, 0.3, rail);
   sl(g0, g1, FF0 + 5.0, FF0 + 5.14, c, 0.22, rail);
-  const bays = 6;
+  const bays = 11;
   for (let i = 1; i < bays; i++) {
     const x = g0 + ((g1 - g0) * i) / bays;
     sl(x - 0.08, x + 0.08, sill, band0, c, 0.22, post);

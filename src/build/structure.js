@@ -133,15 +133,15 @@ export function buildStructure(ctx) {
       colliders.push({ x0: x, x1: xe, z0: Math.min(rearZ(x), rearZ(xe)) - 0.05, z1: Math.max(rearZ(x), rearZ(xe)) + t, y0, y1, id: 'rear' });
     }
   };
-  // (between x 6.643 and 22.174, behind the dining area and the old garden, the
-  //  wall is solid up to door height with a granite sill; the glass wall above it is
+  // (from x 6.643 across the dining area, the old garden and the kitchen, the wall
+  //  is solid up to door height with a granite sill; the glass wall above it is
   //  built with the first floor in exterior.js)
   rearWall(0, 6.643, REAR_T, 0, TOP, 'pPuja', ['ext', null]);
   rearWall(6.643, 22.174, REAR_T, 0, VOID.glassSill, 'pHall', [null, null], 'graniteBlack');
-  rearWall(22.174, PLOT.width, REAR_T, 0, TOP, 'pKitchen', [null, 'ext']);
+  rearWall(22.174, PLOT.width, REAR_T, 0, VOID.glassSill, 'pKitchen', [null, 'ext'], 'graniteBlack');
 
-  // exposed-concrete downstand beam along the free edge of the first-floor slab over the hall
-  B.box(VOID.x0, 22.174, TOP - 1.0, TOP, VOID.zFront, VOID.zFront + 0.6, { all: 'concreteCeil', nx: null, px: null, py: null });
+  // exposed-concrete downstand beam under the edge of the first-floor balcony over the hall
+  B.box(VOID.x0, VOID.hallX1, TOP - 1.0, TOP, VOID.hallFront, VOID.hallFront + 0.6, { all: 'concreteCeil', nx: null, px: null, py: null });
 
   // ---- bathroom wall tiles & kitchen dado ------------------------------------
   cladding(B, ctx);
@@ -173,7 +173,12 @@ export function buildStructure(ctx) {
   const stairHole = [[STAIR.firstRiser, -8.843], [STAIR.x1, -8.843], [STAIR.x1, -0.792], [STAIR.firstRiser, -0.792]];
   // the slab edge round the double-height space is left as exposed concrete
   const vo = voidOutline();
-  const onVoidEdge = (c) => c.x > vo[0][0] - 0.05 && c.x < vo[1][0] + 0.05 && c.z < VOID.zFront + 0.05 && c.z > rearZ(c.x) + REAR_T - 0.05;
+  const onVoidEdge = (c) => vo.some((p, i) => {
+    const q = vo[(i + 1) % vo.length];
+    const dx = q[0] - p[0], dz = q[1] - p[1];
+    const t = Math.max(0, Math.min(1, ((c.x - p[0]) * dx + (c.z - p[1]) * dz) / (dx * dx + dz * dz)));
+    return Math.hypot(c.x - (p[0] + t * dx), c.z - (p[1] + t * dz)) < 0.05;
+  });
   const slabGeo = regroup(extrudeXZ(outline, [stairHole, vo], LV.gfCeil, LV.ff), (gi, c) => (gi === 2 && onVoidEdge(c) ? 3 : gi));
   const slab = new THREE.Mesh(slabGeo, [mats.get('slabTop'), mats.get('ceiling'), mats.get('slabEdge'), mats.get('concreteCeil')]);
   slab.name = 'gf-ceiling-slab';

@@ -243,11 +243,12 @@ function kitchen() {
   // chimney hood
   const hz = rearZ(25.6) + REAR_T;
   mesh(box(2.8, 0.9, 1.6), 'steel', 25.6, F + 5.8, hz + 0.8, group, { uv: false });
-  mesh(box(1.0, 2.2, 0.9), 'steel', 25.6, F + 7.4, hz + 0.45, group, { uv: false });
+  mesh(box(1.0, 0.75, 0.9), 'steel', 25.6, F + 6.625, hz + 0.45, group, { uv: false }); // ducted out below the glass
   // upper cabinets
   const uz = rearZ(31) + REAR_T;
-  mesh(box(6.4, 2.4, 1.1), 'laminate', 31.3, F + 6.7, uz + 0.55, group);
-  for (let i = 1; i < 4; i++) mesh(box(0.03, 2.3, 0.02), 'laminateGrey', 28.1 + i * 1.6, F + 6.7, uz + 1.11, group, { uv: false });
+  // (kept below the glass that starts at door height)
+  mesh(box(6.4, 1.8, 1.1), 'laminate', 31.3, F + 6.1, uz + 0.55, group);
+  for (let i = 1; i < 4; i++) mesh(box(0.03, 1.7, 0.02), 'laminateGrey', 28.1 + i * 1.6, F + 6.1, uz + 1.11, group, { uv: false });
   mesh(box(1.1, 2.4, 3.6), 'laminate', 34.03, F + 6.7, -42.6, group);
   // sink + faucet
   mesh(box(1.5, 0.04, 2.3), 'steel', 33.6, F + 2.93, -40.0, group, { uv: false });
