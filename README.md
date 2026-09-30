@@ -118,7 +118,7 @@ home/
 
 ## Assumptions and limitations
 
-- The first-floor layout was not provided, so the first floor is an **exterior shell** that matches the elevation (terrace over the portico, stair headroom/mumty, parapets). In walk mode the stairs stop at the first-floor landing. The first-floor windows and balcony that face the double-height space have sheer curtains, because the rooms behind them are not modelled.
+- The first-floor layout was not provided, so the first floor is an **exterior shell** that matches the elevation (terrace over the portico, stair headroom/mumty, parapets). In walk mode the stairs stop at the first-floor landing. The first-floor windows that face the double-height space have sheer curtains, because the rooms behind them are not modelled. The balcony opens straight onto the first floor, with no wall or door behind it.
 - The dashed "X" in the entrance lobby is treated as the entrance lobby. It is not modelled as a double-height cut-out.
 - The plan shows no door swings, so doors are shown open and the main door is pushed back against the lobby wall.
 - The plan labels the hall 10′×24′. As drawn, a partition separates the passage, which left about 10′×20′ of dining/drawing space. With the old garden merged in, the hall now runs about 24′ from that partition to the rear wall.
