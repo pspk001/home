@@ -74,6 +74,17 @@ export function voidOutline() {
   ];
 }
 
+// Pipe line area beside the guest room: a plumbing shaft open to the sky, cut
+// through the first-floor slab and the roof as in the original drawing.
+// x0..x1 / z0..z1 = inside faces of its walls; wall = thickness of the walls round it.
+export const DUCT = { x0: 32.382, x1: 35.021, z0: -20.282, z1: -9.635, wall: 0.792 };
+
+/** Plan outline of the pipe line shaft as [x, z] points. */
+export const ductOutline = () => [[DUCT.x0, DUCT.z1], [DUCT.x1, DUCT.z1], [DUCT.x1, DUCT.z0], [DUCT.x0, DUCT.z0]];
+
+/** Is the plan point inside the pipe line shaft (or on its edge, within tol)? */
+export const inDuct = (x, z, tol = 0.05) => x > DUCT.x0 - tol && x < DUCT.x1 + tol && z > DUCT.z0 - tol && z < DUCT.z1 + tol;
+
 // Staircase (dog-legged, 2 flights of 10 risers from GF to FF)
 export const STAIR = {
   x0: 15.619, x1: 34.581, z0: -8.843, z1: -0.792,

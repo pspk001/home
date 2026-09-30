@@ -1,4 +1,4 @@
-import { rearZ, REAR_T } from './config.js';
+import { rearZ, REAR_T, DUCT } from './config.js';
 
 // ---------------------------------------------------------------------------
 // Ground-floor plan data.
@@ -115,8 +115,8 @@ export const ROOMS = [
     note: 'Opens onto the back of the hall (the old garden).' },
   { id: 'stair', name: 'Staircase', size: '19′-0″ × 8′-0″', rects: [[15.619, 34.581, -8.843, -0.792]], floor: 'graniteGrey', level: 'gf',
     note: 'Dog-legged stair, 20 risers to the first floor.' },
-  { id: 'duct', name: 'Pipe Line Area', size: '2′-2″ × 10′-8″', rects: [[32.382, 35.021, -20.282, -9.635]], floor: 'concrete', level: 'duct',
-    note: 'Service shaft for plumbing.' },
+  { id: 'duct', name: 'Pipe Line Area', size: '2′-2″ × 10′-8″', rects: [[DUCT.x0, DUCT.x1, DUCT.z0, DUCT.z1]], floor: 'concrete', level: 'duct',
+    note: 'Service shaft for plumbing, open to the sky: it runs up through the first floor and the roof. The guest room window and the toilet and stair ventilators open onto it.' },
 ];
 
 // Helpers -------------------------------------------------------------------
