@@ -13,7 +13,7 @@ supplied ground-floor plan and dressed with the front elevation's facade. Made w
 | ![Dollhouse](docs/dollhouse.jpg) | ![Plan](docs/plan.jpg) | ![Walk](docs/walk-bedroom.jpg) |
 
 ![Double-height dining hall](docs/walk-hall.jpg)
-*The dining hall, kitchen and old garden share one double-height space. Behind the dining table the rear wall is solid up to door height, with a tall glass wall above it facing the sunrise.*
+*The dining hall, kitchen and old garden share one double-height space with a first-floor balcony. Along the back the wall is solid up to door height, with a tall glass wall above it facing the sunrise.*
 
 ---
 
@@ -110,7 +110,7 @@ home/
 - **Furniture:** placed where the furnished plan shows it.
 - **Assumed heights:** 2′ plinth, 11′ clear ground-floor height, 6″ slabs, 7′ door heads, window sills 3′ above the floor.
 - **Facade:** colours and features come from the elevation image: sage walls, tan stair tower with tall windows, the white "C" frame around the first-floor terrace, the wood-cladding panel and its frame, the slatted box at the base, the gates, the portico canopy, the parapet with vents and the white railing.
-- **Open double-height space (design change):** the walls between the drawing/dining hall, the kitchen and the old garden are gone, so the three share one space. The garden is paved in with the hall, and the puja room now opens onto it. There is no first-floor slab over this space: it rises about 22 ft to a solid roof with a board-formed concrete soffit. Behind the dining area and the old garden, the rear (east) wall is solid up to door height (7 ft above the floor) and a teak-framed glass wall above it rises to the roof, so the morning sun comes in over the lower wall. The kitchen keeps a tall teak window with sheer curtains. A teak jharokha (bay window) and a French balcony look down from the first floor, and a cascade of glass globes hangs over the dining table. The wash basin stands against the rear wall beside the kitchen counter. The config is `VOID` in `src/config.js`.
+- **Open double-height space (design change):** the walls between the drawing/dining hall, the kitchen and the old garden are gone, so the three share one space. The garden is paved in with the hall, and the puja room now opens onto it. There is no first-floor slab over this space: it rises about 22 ft to a solid roof with a board-formed concrete soffit. The double height also covers the middle of the hall, where a first-floor balcony with a glass railing looks down into the space. Along the back, behind the old garden, the dining area and the kitchen, the rear (east) wall is solid up to door height (7 ft above the floor) and a teak-framed glass wall above it rises to the roof, so the morning sun comes in over the lower wall. A cascade of glass globes hangs over the dining table. The wash basin stands against the rear wall beside the kitchen counter. The config is `VOID` in `src/config.js`.
 - **Bedroom doors (design change):** bedroom 1's door moved to the living-room end of its wall and bedroom 2's door to the kitchen end of its wall. Bedroom 1's wardrobe and bedroom 2's TV wall moved to suit, and the hall's crockery unit now stands where bedroom 2's old door was.
 - **Living room:** a 9′-wide window onto the portico (no sunshade, since the portico is roofed).
 - **Portico:** a full-size 7-seater SUV in graphite grey, parked nose-out. It is a generic model, not a specific make.
