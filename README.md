@@ -88,7 +88,7 @@ home/
    ├─ build/
    │  ├─ structure.js    walls, floors, ceiling slab, staircase, bathroom tiles, kitchen dado
    │  ├─ openings.js     windows (frames, glass, grilles, sills, chajjas) and doors
-   │  ├─ exterior.js     first-floor shell, roof, rear glass wall, mumty, C-frame, cladding, gates, street
+   │  ├─ exterior.js     first-floor shell, roof, rear glass wall, pipe line shaft, mumty, C-frame, cladding, gates, street
    │  └─ furniture.js    beds, wardrobes, sofas, dining, kitchen, toilets, mandir, SUV, fans…
    └─ viewer/
       ├─ viewer.js       renderer, lights, sky, view modes, room focus, picking
@@ -115,6 +115,7 @@ home/
 - **Living room:** a 9′-wide window onto the portico (no sunshade, since the portico is roofed).
 - **Portico:** a full-size 7-seater SUV in graphite grey, parked nose-out. It is a generic model, not a specific make.
 - **Name plate:** "Surbhi Bhawan" in raised brass letters on a black granite plate (4′-10″ × 2′-0″), beside the light slit at the front of the stair block. The app header uses the same name.
+- **Pipe line area:** as in the original drawing, the plumbing shaft beside the guest room is open to the sky. The first-floor slab and the roof are cut away over it, walls enclose it on the first floor, and a parapet surrounds the opening on the roof. The config is `DUCT` in `src/config.js`.
 
 ## Assumptions and limitations
 
