@@ -304,46 +304,142 @@ function mandir() {
   collide(1.5, 5.1, zb, zb + 1.4, 6);
 }
 
-function car() {
-  const g = item(5.5, -9.42, 0, LV.portico);
-  const L = 14.6, W = 5.9;
-  // body
-  mesh(rbox(W, 1.9, L, 0.55, 4), 'carPaint', 0, 1.55, 0, g, { uv: false });
-  // cabin (side profile extruded across the width)
-  // side profile: shape +x becomes the car front (-z) after the rotation below
-  const p = new THREE.Shape();
-  p.moveTo(-3.3, 0); p.lineTo(-2.0, 1.72); p.lineTo(1.8, 1.72); p.lineTo(4.3, 0); p.closePath();
-  const cab = new THREE.ExtrudeGeometry(p, { depth: W - 0.7, bevelEnabled: true, bevelSize: 0.12, bevelThickness: 0.12, bevelSegments: 2 });
-  cab.translate(0, 0, -(W - 0.7) / 2);
-  cab.rotateY(Math.PI / 2);
-  mesh(cab, 'carGlass', 0, 2.45, 0.2, g, { uv: false });
-  mesh(rbox(W - 0.7, 0.14, 4.0, 0.06), 'carPaint', 0, 4.36, 0.1, g, { uv: false });
-  // A / C pillars in body colour
-  for (const s of [-1, 1]) {
-    const pil = mesh(box(0.14, 0.14, 2.9), 'carPaint', s * (W / 2 - 0.2), 3.3, -2.9, g, { uv: false });
-    pil.rotation.x = -0.6;
-    const pil2 = mesh(box(0.14, 0.14, 2.1), 'carPaint', s * (W / 2 - 0.2), 3.35, 2.75, g, { uv: false });
-    pil2.rotation.x = 0.9;
+/**
+ * Full-size 7-seat SUV (an original, generic design with no make or badges), parked
+ * nose-out in the portico. Built in a local frame with the nose towards -z and the
+ * wheels on y = 0, then turned round so it faces the gate.
+ */
+function suv() {
+  const cx = 5.5, cz = -9.6;
+  const g = item(cx, cz, Math.PI, LV.portico);
+  const L = 15.6, W = 6.05, R = 1.2;            // length, body width, wheel radius (ft)
+  const axF = 4.9, axR = -4.3;                  // axles, measured forwards (u) from the middle
+  const part = (geo, mat, x = 0, y = 0, z = 0) => mesh(geo, mat, x, y, z, g, { uv: false });
+  // side profile (u forwards, v up) extruded across the car: shape +u becomes -z
+  const side = (shape, width, bevel = 0.08) => {
+    const geo = new THREE.ExtrudeGeometry(shape, { depth: width, bevelEnabled: bevel > 0, bevelSize: bevel, bevelThickness: bevel, bevelSegments: 2, curveSegments: 20 });
+    geo.translate(0, 0, -width / 2);
+    geo.rotateY(Math.PI / 2);
+    return geo;
+  };
+  const pts = (list) => list.map(([u, v]) => new THREE.Vector2(u, v));
+
+  // ---- body: sills, wheel arches, bumpers, bonnet and waist ----
+  const Ra = R + 0.26, a0 = 0.14, ax = Ra * Math.cos(a0), ay = R - Ra * Math.sin(a0);
+  const b = new THREE.Shape();
+  b.moveTo(-7.62, 1.12);
+  b.lineTo(axR - ax - 0.2, 1.0);
+  b.lineTo(axR - ax, ay);
+  b.absarc(axR, R, Ra, Math.PI + a0, -a0, true);
+  b.lineTo(axR + ax + 0.1, 0.8);
+  b.lineTo(axF - ax - 0.1, 0.8);
+  b.lineTo(axF - ax, ay);
+  b.absarc(axF, R, Ra, Math.PI + a0, -a0, true);
+  b.lineTo(7.45, 1.08);
+  b.lineTo(7.78, 1.55);
+  b.lineTo(7.86, 2.95);
+  b.quadraticCurveTo(7.84, 3.45, 7.4, 3.56);
+  b.lineTo(3.1, 3.86);
+  b.lineTo(-7.45, 3.8);
+  b.quadraticCurveTo(-7.78, 3.76, -7.8, 3.45);
+  b.lineTo(-7.78, 1.45);
+  b.closePath();
+  part(side(b, W - 0.16), 'carPaint');
+
+  // ---- glasshouse, roof and window frames ----
+  const gw = W - 0.62;
+  const gh = new THREE.Shape(pts([[3.05, 3.84], [0.95, 5.84], [-6.95, 5.82], [-7.3, 5.55], [-7.5, 3.8]]));
+  part(side(gh, gw, 0.06), 'carGlass');
+  const roof = new THREE.Shape(pts([[1.05, 5.78], [-7.0, 5.76], [-7.02, 5.98], [0.8, 6.0]]));
+  part(side(roof, gw - 0.1, 0.05), 'carPaint');
+  // body-coloured frame on each side: A/B/C/D pillars round three windows
+  const frame = new THREE.Shape(pts([[3.12, 3.8], [0.98, 5.88], [-6.98, 5.86], [-7.36, 5.56], [-7.54, 3.78]]));
+  const win = (list) => frame.holes.push(new THREE.Path(pts(list)));
+  win([[2.53, 4.0], [0.83, 5.62], [-1.3, 5.62], [-1.3, 4.0]]);         // front door
+  win([[-1.75, 4.0], [-1.75, 5.62], [-4.45, 5.62], [-4.45, 4.0]]);     // rear door
+  win([[-4.85, 4.0], [-4.85, 5.62], [-6.75, 5.62], [-7.12, 5.28], [-7.22, 4.0]]); // third row
+  for (const sx of [-1, 1]) part(side(frame, 0.05, 0), 'carPaint', sx * (gw / 2 + 0.085));
+  // window line trim, door shut lines, handles
+  for (const sx of [-1, 1]) {
+    const xs = sx * (W / 2 + 0.005);
+    part(box(0.03, 0.09, 10.7), 'chrome', sx * (gw / 2 + 0.12), 3.93, 2.1);
+    for (const [u, v0, v1] of [[2.95, 1.35, 3.8], [-1.52, 0.95, 3.82], [-4.62, 2.2, 3.8]]) part(box(0.02, v1 - v0, 0.035), 'blackMatte', xs, (v0 + v1) / 2, -u);
+    for (const u of [0.55, -2.75]) part(rbox(0.07, 0.1, 0.5, 0.04), 'chrome', sx * (W / 2 + 0.03), 3.38, -u);
+    // mirror on a short arm
+    part(rbox(0.36, 0.38, 0.62, 0.12), 'carPaint', sx * (W / 2 + 0.36), 4.12, -2.45);
+    part(box(0.34, 0.1, 0.18), 'blackMatte', sx * (W / 2 + 0.1), 4.0, -2.62);
   }
-  // wheels
-  for (const sx of [-1, 1]) for (const sz of [-1, 1]) {
-    const wgeo = cyl(1.05, 1.05, 0.72, 24);
-    wgeo.rotateZ(Math.PI / 2);
-    mesh(wgeo, 'tyre', sx * (W / 2 - 0.3), 1.05, sz * 4.55, g, { uv: false });
-    const rim = cyl(0.62, 0.62, 0.74, 16);
-    rim.rotateZ(Math.PI / 2);
-    mesh(rim, 'rim', sx * (W / 2 - 0.3), 1.05, sz * 4.55, g, { uv: false });
+
+  // ---- black cladding: wheel-arch flares, sills and bumpers ----
+  const arch = new THREE.Shape();
+  const ro = Ra + 0.26, ri = Ra - 0.03;
+  arch.moveTo(ro * Math.cos(-a0), ro * Math.sin(-a0));
+  arch.absarc(0, 0, ro, -a0, Math.PI + a0, false);
+  arch.lineTo(ri * Math.cos(Math.PI + a0), ri * Math.sin(Math.PI + a0));
+  arch.absarc(0, 0, ri, Math.PI + a0, -a0, true);
+  arch.closePath();
+  for (const axle of [axF, axR]) for (const sx of [-1, 1]) {
+    const geo = new THREE.ExtrudeGeometry(arch, { depth: 0.12, bevelEnabled: false, curveSegments: 20 });
+    geo.translate(0, 0, -0.06);
+    geo.rotateY(Math.PI / 2);
+    part(geo, 'blackMatte', sx * (W / 2 + 0.02), R, -axle);
   }
-  // lights, grille, mirrors, plates
-  for (const s of [-1, 1]) {
-    mesh(rbox(1.3, 0.35, 0.2, 0.08), 'headlight', s * 1.9, 1.95, -L / 2 + 0.05, g, { uv: false });
-    mesh(rbox(1.3, 0.35, 0.2, 0.08), 'taillight', s * 1.9, 2.0, L / 2 - 0.05, g, { uv: false });
-    mesh(rbox(0.25, 0.35, 0.6, 0.08), 'carPaint', s * (W / 2 + 0.1), 3.15, -2.8, g, { uv: false });
+  for (const sx of [-1, 1]) {
+    part(box(0.08, 0.5, 5.9), 'blackMatte', sx * (W / 2 + 0.02), 1.08, -0.3);        // sill cladding
+    part(rbox(0.5, 0.12, 6.0, 0.04), 'steel', sx * (W / 2 + 0.22), 0.9, -0.3);       // side step
+    part(box(0.12, 0.25, 0.3), 'blackMatte', sx * (W / 2 + 0.05), 0.85, -2.6);
+    part(box(0.12, 0.25, 0.3), 'blackMatte', sx * (W / 2 + 0.05), 0.85, 2.0);
   }
-  mesh(rbox(2.2, 0.45, 0.15, 0.05), 'blackMatte', 0, 1.55, -L / 2 + 0.02, g, { uv: false });
-  mesh(box(1.4, 0.4, 0.05), 'siteWhite', 0, 1.1, L / 2 + 0.01, g, { uv: false });
-  mesh(box(1.4, 0.4, 0.05), 'siteWhite', 0, 1.1, -L / 2 - 0.01, g, { uv: false });
-  collide(5.5 - W / 2, 5.5 + W / 2, -9.42 - L / 2, -9.42 + L / 2, 5, LV.portico);
+  // front: bumper, skid plate, grille, lamps, number plate
+  part(rbox(W - 0.3, 0.72, 0.5, 0.12), 'blackMatte', 0, 1.42, -7.72);
+  part(rbox(W - 2.0, 0.26, 0.42, 0.08), 'steel', 0, 1.2, -7.86);
+  part(box(3.5, 1.12, 0.12), 'blackMatte', 0, 2.62, -7.9);
+  for (const v of [2.3, 2.62, 2.94]) part(box(3.3, 0.07, 0.05), 'steel', 0, v, -7.97);
+  for (const sx of [-1, 1]) {
+    part(rbox(1.05, 0.52, 0.14, 0.06), 'screen', sx * 2.4, 3.02, -7.84);           // headlamp housing
+    part(box(0.95, 0.06, 0.04), 'headlight', sx * 2.4, 3.22, -7.92);               // LED strip
+    const lens = cyl(0.17, 0.17, 0.06, 20); lens.rotateX(Math.PI / 2);
+    part(lens, 'headlight', sx * 2.55, 2.96, -7.92);
+    const fog = cyl(0.14, 0.14, 0.06, 18); fog.rotateX(Math.PI / 2);
+    part(fog, 'headlight', sx * 2.35, 1.5, -7.99);
+  }
+  part(box(1.6, 0.42, 0.04), 'siteWhite', 0, 1.62, -7.99);
+  // rear: bumper, lamps, plate, wiper, high stop lamp
+  part(rbox(W - 0.3, 0.72, 0.5, 0.12), 'blackMatte', 0, 1.42, 7.72);
+  part(rbox(W - 2.4, 0.22, 0.4, 0.08), 'steel', 0, 1.18, 7.84);
+  for (const sx of [-1, 1]) {
+    part(rbox(0.62, 0.95, 0.12, 0.05), 'taillight', sx * 2.62, 3.05, 7.84);
+    part(box(0.45, 0.12, 0.04), 'headlight', sx * 2.62, 2.7, 7.9);
+  }
+  part(box(1.6, 0.42, 0.04), 'siteWhite', 0, 2.3, 7.86);
+  part(box(0.9, 0.04, 0.04), 'taillight', 0, 5.9, 7.06);
+  const wiper = part(box(0.05, 0.05, 1.2), 'blackMatte', 0, 4.05, 7.62);
+  wiper.rotation.x = Math.PI / 2 - 0.2;
+  // roof rails
+  for (const sx of [-1, 1]) {
+    part(rbox(0.12, 0.1, 7.2, 0.04), 'steel', sx * (gw / 2 - 0.35), 6.14, 3.05);
+    for (const z of [-0.1, 3.05, 6.2]) part(box(0.12, 0.14, 0.3), 'blackMatte', sx * (gw / 2 - 0.35), 6.03, z);
+  }
+
+  // ---- wheels: rounded tyres, six-spoke alloys ----
+  const tyre = new THREE.LatheGeometry(pts([[0.8, -0.42], [1.08, -0.43], [1.17, -0.36], [1.2, -0.22], [1.2, 0.22], [1.17, 0.36], [1.08, 0.43], [0.8, 0.42]]).map((p) => new THREE.Vector2(p.x, p.y)), 32);
+  tyre.rotateZ(Math.PI / 2);
+  for (const axle of [axF, axR]) for (const sx of [-1, 1]) {
+    const x = sx * (W / 2 - 0.38), z = -axle, xo = x + sx * 0.36;
+    part(tyre.clone(), 'tyre', x, R, z);
+    const barrel = cyl(0.8, 0.8, 0.7, 28); barrel.rotateZ(Math.PI / 2);
+    part(barrel, 'blackMatte', x, R, z);
+    const lip = new THREE.TorusGeometry(0.78, 0.04, 8, 32); lip.rotateY(Math.PI / 2);
+    part(lip, 'rim', xo, R, z);
+    const hub = cyl(0.17, 0.17, 0.1, 16); hub.rotateZ(Math.PI / 2);
+    part(hub, 'rim', xo, R, z);
+    for (let k = 0; k < 6; k++) {
+      const t = (k / 6) * Math.PI * 2;
+      const sp = part(box(0.07, 0.62, 0.13), 'rim', xo - sx * 0.02, R + 0.42 * Math.cos(t), z + 0.42 * Math.sin(t));
+      sp.rotation.x = t;
+    }
+  }
+  collide(cx - W / 2 - 0.45, cx + W / 2 + 0.45, cz - L / 2 - 0.2, cz + L / 2 + 0.2, 6.2, LV.portico);
 }
 
 // ---------------------------------------------------------------------------
@@ -358,8 +454,8 @@ export function buildFurniture(ctx) {
   bed(item(3.46, -39.5), 5.0, 6.3, 'blanketBlue');
   collide(0.9, 6.0, -42.9, -36.8, 2.2);
   sideTable(item(6.55, -42.3));
-  wardrobe(item(10.85, -34.3, -Math.PI / 2), 5.9);
-  collide(9.87, 11.88, -37.3, -31.35, 7.2);
+  wardrobe(item(10.85, -38.25, -Math.PI / 2), 5.9); // between the rear window and the door
+  collide(9.87, 11.88, -41.2, -35.3, 7.2);
   tvConsole(item(3.3, -31.6, Math.PI), 4.6);
   collide(1.0, 5.6, -32.3, -30.93, 1.5);
   tv(item(3.3, -30.99, Math.PI, F + 4.1));
@@ -406,24 +502,25 @@ export function buildFurniture(ctx) {
   chair(item(tx + 2.21, tz - 0.91, -Math.PI / 2));
   chair(item(tx + 2.21, tz + 0.9, -Math.PI / 2));
   globeChandelier(tx, tz);
-  // wash basin on the bedroom-2 wall (the old garden wall is gone)
-  const wb = item(21.4, -34.8, -Math.PI / 2);
+  // wash basin against the rear wall, beside the kitchen counter (the wall is slightly slanted)
+  const wbx = 20.85, wbz = rearZ(wbx) + REAR_T + 0.8;
+  const wb = item(wbx, wbz, -Math.atan(rearZ(1) - rearZ(0)));
   mesh(cyl(0.35, 0.25, 2.5, 16), 'ceramic', 0, 1.25, 0, wb, { uv: false });
   mesh(cyl(0.75, 0.55, 0.4, 24), 'ceramic', 0, 2.7, 0, wb, { uv: false });
   mesh(cyl(0.6, 0.6, 0.02, 24), 'basinInner', 0, 2.91, 0, wb, { uv: false });
   mesh(box(1.8, 2.4, 0.05), 'mirror', 0, 5.0, -0.76, wb, { uv: false });
-  collide(20.6, 22.17, -35.6, -34.0, 3);
+  collide(wbx - 0.75, wbx + 0.75, wbz - 0.8, wbz + 0.75, 3);
   // a big leafy plant in the old garden bay, beside the way to the puja room
   plant(11.3, -46.6, 1.35);
   collide(10.55, 12.05, -47.35, -45.85, 3);
-  // crockery unit along the west wall
-  const cu = item(12.95, -35.0, Math.PI / 2);
+  // crockery unit on the bedroom-2 wall, where that room's old door was
+  const cu = item(21.47, -30.6, -Math.PI / 2);
   mesh(box(5.0, 3.0, 1.4), 'furnWood', 0, 1.5, 0, cu);
   mesh(box(4.8, 2.8, 0.02), 'laminate', 0, 1.5, 0.71, cu, { uv: false });
   mesh(box(5.0, 2.8, 1.0), 'glass', 0, 5.2, -0.2, cu, { uv: false, shadow: false });
   mesh(box(5.0, 0.1, 1.0), 'furnWood', 0, 3.8, -0.2, cu);
   mesh(box(5.0, 0.1, 1.0), 'furnWood', 0, 6.6, -0.2, cu);
-  collide(12.23, 13.65, -37.5, -32.5, 7);
+  collide(20.77, 22.17, -33.1, -28.1, 7);
   ceilingFan(17.2, -30.0);
   plant(13.2, -23.9, 1.2);
   wallArt(12.28, F + 5.5, -24.9, Math.PI / 2, 2.4, 3.0, 'art2');
@@ -435,9 +532,9 @@ export function buildFurniture(ctx) {
   sideTable(item(34.0, -31.15, -Math.PI / 2));
   wardrobe(item(31.6, -27.9, Math.PI), 5.8);
   collide(28.67, 34.5, -28.95, -26.88, 7.2);
-  tv(item(22.62, -34.97, Math.PI / 2, F + 4.3));
-  mesh(box(1.2, 1.5, 3.8), 'furnWood', 23.15, F + 0.75, -34.97);
-  collide(22.5, 23.8, -36.9, -33.0, 1.5);
+  tv(item(22.62, -30.6, Math.PI / 2, F + 4.3));
+  mesh(box(1.2, 1.5, 3.8), 'furnWood', 23.15, F + 0.75, -30.6);
+  collide(22.5, 23.8, -32.5, -28.7, 1.5);
   ceilingFan(28.3, -32.6);
   wallArt(34.53, F + 6.0, -34.3, -Math.PI / 2, 3.2, 1.2, 'art');
 
@@ -477,7 +574,7 @@ export function buildFurniture(ctx) {
   ceilingLight(19.2, -4.8, 0.4);
 
   // ---- Portico --------------------------------------------------------------------
-  car();
+  suv();
   plant(1.5, -1.2, 1.2, LV.portico);
   plant(1.5, -17.0, 1.0, LV.portico);
 
