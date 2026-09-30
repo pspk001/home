@@ -261,8 +261,8 @@ export class MaterialLibrary {
     this._std('pipe', { color: 0x9ea3a8, roughness: 0.5 });
     this._std('pipeOrange', { color: 0xc86a32, roughness: 0.5 });
 
-    // Car
-    this._add('carPaint', new THREE.MeshPhysicalMaterial({ color: 0xeef0f2, roughness: 0.3, metalness: 0.35, clearcoat: 1, clearcoatRoughness: 0.08 }));
+    // SUV in the portico
+    this._add('carPaint', new THREE.MeshPhysicalMaterial({ color: 0x545a61, roughness: 0.32, metalness: 0.5, clearcoat: 1, clearcoatRoughness: 0.06 })); // graphite metallic
     this._std('carGlass', { color: 0x46607a, roughness: 0.03, metalness: 0.85, envMapIntensity: 2.2 });
     this._std('tyre', { color: 0x151515, roughness: 0.9 });
     this._std('rim', { color: 0xb8bcc2, roughness: 0.25, metalness: 1 });

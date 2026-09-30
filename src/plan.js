@@ -34,7 +34,7 @@ export const WALLS = [
 
   // Hall / bedroom 2 / toilets ---------------------------------------------
   { id: 'C8', x: [22.174, 22.922], z: [-38.321, -37.529], s0: 'pHall', s1: 'pBed2' },
-  { id: 'B2-left', x: [22.174, 22.526], z: [-37.529, -27.322], s0: 'pHall', s1: 'pBed2', open: [{ t: 'door', a: -31.414, b: -27.85, door: 'bed2' }] },
+  { id: 'B2-left', x: [22.174, 22.526], z: [-37.529, -27.322], s0: 'pHall', s1: 'pBed2', open: [{ t: 'door', a: -37.45, b: -33.89, door: 'bed2' }] }, // door at the kitchen end
   { id: 'C10', x: [22.174, 22.922], z: [-27.322, -26.53], s0: 'pHall', s1: 'pToilet' },
   { id: 'K-B2', x: [22.922, 34.581], z: [-38.321, -37.969], s0: 'pKitchen', s1: 'pBed2' },
   { id: 'T-top-a', x: [20.678, 22.174], z: [-26.882, -26.53], s0: 'pHall', s1: 'pToilet' },
@@ -71,7 +71,7 @@ export const WALLS = [
   { id: 'LV-right-a', x: [11.879, 12.231], z: [-30.534, -23.098], s0: 'accentLiving', s1: 'pHall', open: [{ t: 'arch', a: -30.094, b: -26.574 }] },
   { id: 'LV-right-b', x: [11.879, 12.231], z: [-23.098, -18.831], s0: 'pLiving', s1: 'pLobby', open: [{ t: 'arch', a: -22.658, b: -19.139 }] },
   { id: 'C7', x: [11.439, 12.231], z: [-31.326, -30.534], s0: 'pBed1', s1: 'pHall' },
-  { id: 'B1-right', x: [11.879, 12.231], z: [-42.941, -31.326], s0: 'pBed1', s1: 'pHall', open: [{ t: 'door', a: -42.545, b: -38.981, door: 'bed1' }] },
+  { id: 'B1-right', x: [11.879, 12.231], z: [-42.941, -31.326], s0: 'pBed1', s1: 'pHall', open: [{ t: 'door', a: -35.2, b: -31.64, door: 'bed1' }] }, // door at the living-room end
   { id: 'B1-LV', x: [0.792, 11.439], z: [-30.93, -30.534], s0: 'pBed1', s1: 'pLiving' },
   { id: 'H-part', x: [12.231, 20.678], z: [-23.274, -22.922], s0: 'pHall', s1: 'pLobby' },
 ];
@@ -81,7 +81,7 @@ export const WALLS = [
 export const DOORS = {
   main:    { double: true, side: 1, style: 'teak', flat: true }, // pushed fully open against the lobby wall
   bed1:    { hinge: 'b', side: 0, style: 'wood' },
-  bed2:    { hinge: 'b', side: 1, style: 'wood' },
+  bed2:    { hinge: 'a', side: 1, style: 'wood' },
   guest:   { hinge: 'b', side: 1, style: 'wood' },
   toilet1: { hinge: 'a', side: 1, style: 'pvc' },
   toilet2: { hinge: 'a', side: 0, style: 'pvc' },
