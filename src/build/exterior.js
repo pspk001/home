@@ -378,38 +378,19 @@ function buildVoidWalls(B) {
   // walls above the bedroom-1 and bedroom-2 walls, facing each other across the hall;
   // they run forward to the back wall of the balcony
   const zB = VOID.balconyBack, zE = VOID.hallFront, hx = VOID.hallX1;
-  const win = (a, b, curtain) => ({ a, b, sill: FF0 + 3, head: FF0 + 7.5, frame: wood, glass: 'glass', curtain });
+  // one big window in each (6 ft tall, sill 2 ft above the first floor)
+  const win = (a, b, curtain) => ({ a, b, sill: FF0 + 2, head: FF0 + 8, frame: wood, glass: 'glass', curtain });
   wallRun(B, { x: [11.879, VOID.x0], z: [-42.941, zB], y0: FF0, y1: FF1, s0: I, s1: I, end: I,
-    open: [win(-41.8, -39.2, -1), win(-37.0, -34.4, -1)] });
+    open: [win(-40.4, -33.2, -1)] });
   wallRun(B, { x: [hx, hx + 0.5], z: [zR, zB], y0: FF0, y1: FF1, s0: I, s1: I, end: I,
-    open: [win(-37.0, -34.4, 1)] });
+    open: [win(-36.9, -31.5, 1)] });
 
   // front wall over the kitchen / bedroom-2 line
   wallRun(B, { x: [hx, PLOT.width - T], z: [zF, zR], y0: FF0, y1: FF1, s0: I, s1: I, end: I });
 
-  // -- Balcony over the hall: back wall with glazed teak doors, deck, glass railing --
+  // -- Balcony over the hall: open to the first floor behind it; wooden deck and a
+  //    glass railing with a teak handrail along its edge --
   {
-    const bal = { a: 15.0, b: 19.4, sill: FF0 + 0.05, head: FF0 + 7.5 };
-    wallRun(B, { x: [11.879, hx + 0.5], z: [zB, zB + 0.5], y0: FF0, y1: FF1, s0: I, s1: I, end: I,
-      open: [{ ...bal, frame: false, glass: false }] });
-    const { a, b, sill, head } = bal;
-    const zc = zB + 0.25, fd = 0.3;
-    const fr = (x0, x1, y0, y1) => tb(x0, x1, y0, y1, zc - fd / 2, zc + fd / 2);
-    fr(a, a + 0.25, sill, head); fr(b - 0.25, b, sill, head); fr(a, b, head - 0.25, head);
-    // two leaves, each with 2 × 3 panes
-    const lw = (b - a - 0.5) / 2;
-    for (let k = 0; k < 2; k++) {
-      const x0 = a + 0.25 + k * lw, x1 = x0 + lw, y0 = sill, y1 = head - 0.25;
-      const t = 0.12;
-      tb(x0, x0 + 0.2, y0, y1, zc - t / 2, zc + t / 2);
-      tb(x1 - 0.2, x1, y0, y1, zc - t / 2, zc + t / 2);
-      tb(x0, x1, y0, y0 + 0.5, zc - t / 2, zc + t / 2);
-      tb(x0, x1, y1 - 0.2, y1, zc - t / 2, zc + t / 2);
-      tb((x0 + x1) / 2 - 0.05, (x0 + x1) / 2 + 0.05, y0, y1, zc - 0.04, zc + 0.04);
-      for (const f of [0.42, 0.72]) tb(x0, x1, y0 + (y1 - y0) * f - 0.05, y0 + (y1 - y0) * f + 0.05, zc - 0.04, zc + 0.04);
-      GB.box(x0 + 0.2, x1 - 0.2, y0 + 0.5, y1 - 0.2, zc - 0.015, zc + 0.015, 'glass');
-    }
-    sheer(false, zB + 0.65, a + 0.1, b - 0.1, sill + 0.1, head - 0.05);
     // wooden deck on the slab, and a glass railing with a teak handrail along the edge
     B.box(VOID.x0, hx, FF0, FF0 + 0.05, zE, zB, { py: 'wood', all: 'wood', ny: null });
     const zr = zE + 0.12;
