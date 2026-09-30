@@ -386,11 +386,14 @@ function buildVoidWalls(B) {
   // walls above the bedroom-1 and bedroom-2 walls, facing each other across the hall;
   // they run forward to the back wall of the balcony
   const zB = VOID.balconyBack, zE = VOID.hallFront, hx = VOID.hallX1;
-  // one big window on the bedroom-1 side (6 ft tall, sill 2 ft above the first floor),
-  // ending short of the balcony; the bedroom-2 side is a plain wall
+  // teak-framed windows, both ending short of the balcony: a big one on the bedroom-1
+  // side (6 ft tall, sill 2 ft above the first floor) and the original smaller one at
+  // the kitchen end of the bedroom-2 side
+  const win = (a, b, sill, head, curtain) => ({ a, b, sill: FF0 + sill, head: FF0 + head, frame: wood, glass: 'glass', curtain });
   wallRun(B, { x: [11.879, VOID.x0], z: [-42.941, zB], y0: FF0, y1: FF1, s0: I, s1: I, end: I,
-    open: [{ a: -40.4, b: -33.2, sill: FF0 + 2, head: FF0 + 8, frame: wood, glass: 'glass', curtain: -1 }] });
-  wallRun(B, { x: [hx, hx + 0.5], z: [zR, zB], y0: FF0, y1: FF1, s0: I, s1: I, end: I });
+    open: [win(-40.4, -33.2, 2, 8, -1)] });
+  wallRun(B, { x: [hx, hx + 0.5], z: [zR, zB], y0: FF0, y1: FF1, s0: I, s1: I, end: I,
+    open: [win(-37.0, -34.4, 3, 7.5, 1)] });
 
   // front wall over the kitchen / bedroom-2 line
   wallRun(B, { x: [hx, PLOT.width - T], z: [zF, zR], y0: FF0, y1: FF1, s0: I, s1: I, end: I });
