@@ -522,7 +522,8 @@ export function buildFurniture(ctx) {
   mesh(box(5.0, 0.1, 1.0), 'furnWood', 0, 3.8, -0.2, cu);
   mesh(box(5.0, 0.1, 1.0), 'furnWood', 0, 6.6, -0.2, cu);
   collide(20.77, 22.17, -33.1, -28.1, 7);
-  ceilingFan(17.2, -30.0);
+  ceilingFan(17.2, -27.0); // under the first floor, clear of the edge beam on grid F
+  ceilingLight(9.4, -45.7); // the old garden bay now has a normal ceiling
   plant(13.2, -23.9, 1.2);
   wallArt(12.28, F + 5.5, -24.9, Math.PI / 2, 2.4, 3.0, 'art2');
 
@@ -533,9 +534,12 @@ export function buildFurniture(ctx) {
   sideTable(item(34.0, -31.15, -Math.PI / 2));
   wardrobe(item(31.6, -27.9, Math.PI), 5.8);
   collide(28.67, 34.5, -28.95, -26.88, 7.2);
-  tv(item(22.62, -30.6, Math.PI / 2, F + 4.3));
-  mesh(box(1.2, 1.5, 3.8), 'furnWood', 23.15, F + 0.75, -30.6);
-  collide(22.5, 23.8, -32.5, -28.7, 1.5);
+  // TV on a low console, standing just clear of the column on grid F (F5)
+  mesh(box(1.2, 1.5, 3.8), 'furnWood', 23.55, F + 0.75, -30.6);
+  mesh(box(0.5, 0.12, 0.9), 'blackMatte', 23.4, F + 1.56, -30.6, group, { uv: false });
+  mesh(box(0.08, 0.5, 0.08), 'blackMatte', 23.4, F + 1.82, -30.6, group, { uv: false });
+  tv(item(23.4, -30.6, Math.PI / 2, F + 3.1));
+  collide(22.9, 24.2, -32.5, -28.7, 1.5);
   ceilingFan(28.3, -32.6);
   wallArt(34.53, F + 6.0, -34.3, -Math.PI / 2, 3.2, 1.2, 'art');
 

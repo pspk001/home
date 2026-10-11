@@ -1,6 +1,6 @@
 import * as THREE from 'three';
 import { Batcher, extrudeXZ, regroup } from '../geometry.js';
-import { LV, OPENING, PLOT, rearZ, REAR_T, STAIR, VOID, voidOutline, ductOutline, inDuct } from '../config.js';
+import { LV, OPENING, PLOT, rearZ, REAR_T, STAIR, VOID, BAY, REAR_COLS, REAR_COL_D, voidOutline, ductOutline, inDuct } from '../config.js';
 import { WALLS, ROOMS } from '../plan.js';
 
 const EXTERIOR = new Set(['ext', 'extTan', 'pPortico', 'siding']);
@@ -143,8 +143,11 @@ export function buildStructure(ctx) {
   rearWall(6.643, 22.174, REAR_T, 0, VOID.glassSill, 'pHall', [null, null], 'graniteBlack');
   rearWall(22.174, PLOT.width, REAR_T, 0, VOID.glassSill, 'pKitchen', [null, 'ext'], 'graniteBlack');
 
-  // exposed-concrete downstand beam under the edge of the first-floor balcony over the hall
-  B.box(VOID.x0, VOID.hallX1, TOP - 1.0, TOP, VOID.hallFront, VOID.hallFront + 0.6, { all: 'concreteCeil', nx: null, px: null, py: null });
+  // exposed-concrete downstand beams along the edges of the first-floor slab round the
+  // double-height space: on grid F (columns F2 to F5) across the hall, and on grid 2
+  // between the old garden bay and the dining area (rear-wall column to D2)
+  B.box(VOID.x0, VOID.hallX1, TOP - 1.0, TOP, VOID.hallFront, VOID.hallFront + 0.792, { all: 'concreteCeil', nx: null, px: null, py: null });
+  B.box(REAR_COLS[0][0], VOID.x0, TOP - 1.0, TOP, rearZ(VOID.x0) + REAR_COL_D, BAY.zFront, { all: 'concreteCeil', nz: null, pz: null, py: null });
 
   // ---- bathroom wall tiles & kitchen dado ------------------------------------
   cladding(B, ctx);
