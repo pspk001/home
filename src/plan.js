@@ -34,6 +34,7 @@ export const WALLS = [
 
   // Hall / bedroom 2 / toilets ---------------------------------------------
   { id: 'C8', x: [22.174, 22.922], z: [-38.321, -37.529], s0: 'pHall', s1: 'pBed2' },
+  { id: 'C-F5', x: [22.174, 22.922], z: [-31.326, -30.534], s0: 'pHall', s1: 'pBed2' }, // column added on grid F: carries the first-floor edge beam
   { id: 'B2-left', x: [22.174, 22.526], z: [-37.529, -27.322], s0: 'pHall', s1: 'pBed2', open: [{ t: 'door', a: -37.45, b: -33.89, door: 'bed2' }] }, // door at the kitchen end
   { id: 'C10', x: [22.174, 22.922], z: [-27.322, -26.53], s0: 'pHall', s1: 'pToilet' },
   { id: 'K-B2', x: [22.922, 34.581], z: [-38.321, -37.969], s0: 'pKitchen', s1: 'pBed2' },
@@ -98,7 +99,7 @@ export const ROOMS = [
     note: '3-seater sofa, 2 armchairs, a window on the side wall and a wide window onto the portico.' },
   { id: 'hall', name: 'Drawing / Dining Hall', size: '10′-0″ × 24′-0″ + old garden bay', floor: 'tileMarble', level: 'gf', rear: true,
     rects: [[12.231, 22.174, -43.689, -26.882], [12.231, 20.678, -26.882, -23.274], [6.643, 22.174, -48.836, -43.689]],
-    note: 'One open space with the kitchen and the old garden. The dining end and the middle of the hall rise double height, overlooked by a first-floor balcony and lit by a tall glass wall above door height, facing the sunrise. A glass-globe chandelier hangs over the table; wash basin by the kitchen.' },
+    note: 'One open space with the kitchen and the old garden. The dining end and the middle of the hall rise double height up to the first-floor railing on grid F, lit by a tall glass wall above door height, facing the sunrise; the old garden bay keeps a normal ceiling. A glass-globe chandelier hangs over the table; wash basin by the kitchen.' },
   { id: 'bed1', name: 'Bedroom 1', size: '11′-0″ × 12′-0″', rects: [[0.792, 11.879, -42.941, -30.93]], floor: 'wood', level: 'gf',
     note: 'Queen bed, wardrobe, TV wall, 2 windows.' },
   { id: 'bed2', name: 'Bedroom 2', size: '12′-0″ × 11′-0″', rects: [[22.526, 34.581, -37.969, -26.882]], floor: 'wood', level: 'gf',

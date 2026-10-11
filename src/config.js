@@ -45,32 +45,37 @@ export const PLOT = {
 export const rearZ = (x) => PLOT.rearLeft + (PLOT.rearRight - PLOT.rearLeft) * (x / PLOT.width);
 export const REAR_T = 0.79; // rear wall thickness
 
-// Double-height space shared by the hall, the kitchen and the old garden: there
-// is no first-floor slab here, so it rises to the roof. A first-floor balcony
-// overlooks it from the front.
+// Double-height space over the dining area, the kitchen and the middle of the hall:
+// there is no first-floor slab here, so it rises to the roof. It reaches forward to
+// the first-floor edge beam on grid F, where a railing overlooks it. The old garden
+// bay beside it keeps a normal ceiling (the first-floor slab runs over it).
 export const VOID = {
-  x0: 12.231,        // hall side of the bedroom-1 wall
+  x0: 12.231,        // grid 2: hall side of the bedroom-1 wall, carried on to the rear wall
   x1: 34.581,        // inside face of the east wall
   zFront: -38.321,   // line of the kitchen / bedroom-2 wall
-  gardenX0: 6.643,   // the old garden starts at the puja-room wall
-  gardenZ: -43.689,  // rear face of the bedroom-1 wall
   hallX1: 22.174,    // between the bedroom walls the space reaches further forward over the hall…
-  hallFront: -33.0,  // …to the edge of a first-floor balcony
-  balconyBack: -30.534, // back wall of that balcony (first floor)
-  glassSill: LV.gf + 7.0, // rear wall: solid up to door height, glass above (dining area and kitchen)
+  hallFront: -31.326, // …to the edge beam on grid F (its back face, flush with column F2)
+  glassSill: LV.gf + 7.0, // rear wall: solid up to door height, glass above
 };
+
+// The old garden bay, now part of the hall at ground level, single height.
+export const BAY = { x0: 6.643, x1: VOID.x0, zFront: -43.689 };
+
+// Columns standing in the slanted rear wall, full height: grid 2 (added so the bay's
+// slab edge and the rear beam are carried) and grid 5 (B5). [x0, x1] on plan; each is
+// 10" deep, flush with the outer face of the wall.
+export const REAR_COLS = [[11.439, 12.231], [22.174, 22.922]];
+export const REAR_COL_D = 10 / 12;
 
 /** Plan outline of the double-height space (inside wall faces) as [x, z] points. */
 export function voidOutline() {
   return [
-    [VOID.gardenX0, rearZ(VOID.gardenX0) + REAR_T],
+    [VOID.x0, rearZ(VOID.x0) + REAR_T],
     [VOID.x1, rearZ(VOID.x1) + REAR_T],
     [VOID.x1, VOID.zFront],
     [VOID.hallX1, VOID.zFront],
     [VOID.hallX1, VOID.hallFront],
     [VOID.x0, VOID.hallFront],
-    [VOID.x0, VOID.gardenZ],
-    [VOID.gardenX0, VOID.gardenZ],
   ];
 }
 
