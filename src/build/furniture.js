@@ -8,11 +8,15 @@ import { LV, rearZ, REAR_T } from '../config.js';
 // from the drawing). All pieces are simple procedural models.
 // ---------------------------------------------------------------------------
 
-const F = LV.gf; // ground-floor finished level
+// Finished floor and ceiling of the storey being furnished (switched for the first
+// floor and the roof in buildFurniture)
+let F = LV.gf;
+let CEIL = LV.gfCeil;
 
 let M; // material getter
 let group;
 let colliders;
+let walkables;
 
 function mesh(geo, mat, x, y, z, parent = group, { ry = 0, uv = true, shadow = true } = {}) {
   if (uv) worldUV(geo);
@@ -121,7 +125,7 @@ function chair(g) {
   for (const sx of [-1, 1]) for (const sz of [-1, 1]) mesh(box(0.12, 1.45, 0.12), 'furnWood', sx * 0.62, 0.72, sz * 0.6, g);
 }
 function ceilingFan(x, z, blades = 'furnWood') {
-  const g = item(x, z, Math.random() * 3, LV.gfCeil);
+  const g = item(x, z, Math.random() * 3, CEIL);
   mesh(cyl(0.05, 0.05, 1.2, 8), 'white', 0, -0.6, 0, g, { uv: false, shadow: false });
   mesh(cyl(0.38, 0.32, 0.32, 20), 'white', 0, -1.3, 0, g, { uv: false });
   for (let i = 0; i < 3; i++) {
@@ -132,7 +136,7 @@ function ceilingFan(x, z, blades = 'furnWood') {
   mesh(new THREE.SphereGeometry(0.22, 16, 8, 0, Math.PI * 2, 0, Math.PI / 2), 'lampShade', 0, -1.47, 0, g, { uv: false }).rotation.x = Math.PI;
 }
 function ceilingLight(x, z, r = 0.45) {
-  mesh(cyl(r, r, 0.06, 24), 'lightPanel', x, LV.gfCeil - 0.03, z, group, { uv: false, shadow: false });
+  mesh(cyl(r, r, 0.06, 24), 'lightPanel', x, CEIL - 0.03, z, group, { uv: false, shadow: false });
 }
 /** Cascade of frosted glass globes hanging on long wires from the double-height ceiling. */
 function globeChandelier(cx, cz) {
@@ -263,26 +267,53 @@ function kitchen() {
   mesh(box(1.2, 0.8, 0.9), 'laminateGrey', 33.7, F + 3.3, -43.6, group, { uv: false });
 }
 
-function toiletSet(wcX, wcZ, basin, shower, mirrorRy) {
-  // WC facing -x (cistern against the east wall)
-  const wc = item(wcX, wcZ, -Math.PI / 2);
+/** WC with its cistern towards local -z (ry turns it; ry = -π/2 puts the cistern on the +x wall). */
+function wcUnit(x, z, ry) {
+  const wc = item(x, z, ry);
   mesh(rbox(1.3, 1.2, 0.6, 0.12), 'ceramic', 0, 1.9, -0.95, wc, { uv: false });
   mesh(rbox(1.15, 1.25, 1.7, 0.35), 'ceramic', 0, 0.62, 0.05, wc, { uv: false });
   mesh(rbox(1.2, 0.08, 1.75, 0.3), 'ceramic', 0, 1.3, 0.08, wc, { uv: false });
-  collide(wcX - 1.2, wcX + 1.2, wcZ - 0.7, wcZ + 0.7, 2);
-  // wall-hung basin + mirror
-  const b = item(basin[0], basin[1], basin[2]);
+}
+/** Wall-hung basin and mirror; the wall is on local -z. */
+function basinUnit(x, z, ry) {
+  const b = item(x, z, ry);
   mesh(rbox(1.6, 0.55, 1.25, 0.15), 'ceramic', 0, 2.75, 0, b, { uv: false });
   mesh(box(1.3, 0.05, 0.9), 'basinInner', 0, 3.03, 0.05, b, { uv: false });
   mesh(cyl(0.04, 0.04, 0.5, 8), 'chrome', 0, 3.25, -0.45, b, { uv: false });
   mesh(box(1.6, 2.1, 0.04), 'mirror', 0, 4.9, -0.62, b, { uv: false });
-  // shower
-  const s = item(shower[0], shower[1], shower[2]);
+}
+/** Shower head, mixer and towel rail on a wall at local z = 0, facing +z. */
+function showerUnit(x, z, ry) {
+  const s = item(x, z, ry);
   mesh(cyl(0.3, 0.3, 0.05, 20), 'chrome', 0, 6.5, 0.45, s, { uv: false }).rotation.x = Math.PI / 2 - 0.4;
   mesh(cyl(0.03, 0.03, 0.5, 8), 'chrome', 0, 6.6, 0.25, s, { uv: false }).rotation.x = Math.PI / 2;
   mesh(box(0.35, 0.35, 0.1), 'chrome', 0, 3.6, 0.03, s, { uv: false });
-  // towel rail
   mesh(cyl(0.03, 0.03, 1.4, 8), 'chrome', 0.9, 4.2, 0.12, s, { uv: false }).rotation.z = Math.PI / 2;
+}
+function toiletSet(wcX, wcZ, basin, shower) {
+  // WC facing -x (cistern against the east wall)
+  wcUnit(wcX, wcZ, -Math.PI / 2);
+  collide(wcX - 1.2, wcX + 1.2, wcZ - 0.7, wcZ + 0.7, 2);
+  basinUnit(basin[0], basin[1], basin[2]);
+  showerUnit(shower[0], shower[1], shower[2]);
+}
+/** Frameless glass shower screen between two plan points. */
+function showerScreen(x0, z0, x1, z1, h = 6.6) {
+  const w = Math.hypot(x1 - x0, z1 - z0);
+  const s = mesh(box(w, h, 0.03), 'glass', (x0 + x1) / 2, F + 0.1 + h / 2, (z0 + z1) / 2, group, { uv: false, shadow: false });
+  s.rotation.y = -Math.atan2(z1 - z0, x1 - x0);
+  mesh(box(w, 0.06, 0.06), 'chrome', (x0 + x1) / 2, F + 0.13, (z0 + z1) / 2, group, { uv: false }).rotation.y = s.rotation.y;
+  collide(Math.min(x0, x1) - 0.06, Math.max(x0, x1) + 0.06, Math.min(z0, z1) - 0.06, Math.max(z0, z1) + 0.06, h);
+}
+/** Floor rug (walkable, so walk mode stands on it). */
+function rug(x, z, w, d, ry = 0) {
+  const r = new THREE.Mesh(new THREE.BoxGeometry(w, 0.04, d), M('rug'));
+  r.position.set(x, F + 0.02, z);
+  r.rotation.y = ry;
+  r.receiveShadow = true;
+  group.add(r);
+  walkables.push(r);
+  return r;
 }
 
 function mandir() {
@@ -447,6 +478,9 @@ function suv() {
 export function buildFurniture(ctx) {
   M = (k) => ctx.mats.get(k);
   colliders = ctx.colliders;
+  walkables = ctx.walkables;
+  F = LV.gf;
+  CEIL = LV.gfCeil;
   group = new THREE.Group();
   group.name = 'furniture';
   ctx.house.add(group);
@@ -583,6 +617,233 @@ export function buildFurniture(ctx) {
   plant(1.5, -1.2, 1.2, LV.portico);
   plant(1.5, -17.0, 1.0, LV.portico);
 
+  // ---- First floor and roof ----------------------------------------------------------
+  F = LV.ffFloor; CEIL = LV.ffCeil;
+  firstFloorFurniture();
+  F = LV.roof; CEIL = LV.mumtyCeil;
+  roofFurniture();
+  F = LV.gf; CEIL = LV.gfCeil;
+
   group.traverse((o) => { if (o.isMesh) o.userData.furniture = true; });
   return group;
+}
+
+// ---------------------------------------------------------------------------
+// First-floor flat (positions in feet, see plan-ff.js)
+// ---------------------------------------------------------------------------
+function firstFloorFurniture() {
+  const slant = -Math.atan(rearZ(1) - rearZ(0)); // turn that lines a piece up with the slanted rear wall
+  const backAt = (x) => rearZ(x) + REAR_T;      // inside face of the rear wall
+
+  // ---- Living room: sofa on the north wall, TV unit screening the dining area ----
+  rug(5.9, -24.7, 6.2, 8.4);
+  sofa(item(2.35, -24.7, Math.PI / 2), 6.8, 2.85, 3, 'sofaGrey');
+  collide(0.9, 3.8, -28.1, -21.3, 2.8);
+  armchair(item(6.0, -29.0, 0));
+  collide(4.5, 7.5, -30.4, -27.6, 2.8);
+  coffeeTable(item(6.0, -24.7), 1.9, 3.2);
+  collide(5.05, 6.95, -26.3, -23.1, 1.5);
+  sideTable(item(2.3, -20.4));
+  collide(1.7, 2.9, -21.0, -19.8, 2);
+  plant(4.3, -19.7, 0.95);
+  collide(3.75, 4.85, -20.25, -19.15, 2.5);
+  // TV console with a slatted teak screen behind it (the open side towards the dining table)
+  tvConsole(item(11.35, -24.7, -Math.PI / 2), 5.0);
+  mesh(box(0.5, 0.12, 0.9), 'blackMatte', 11.35, F + 1.56, -24.7, group, { uv: false });
+  mesh(box(0.08, 0.5, 0.08), 'blackMatte', 11.35, F + 1.82, -24.7, group, { uv: false });
+  tv(item(11.35, -24.7, -Math.PI / 2, F + 3.1), 3.7, 2.1);
+  for (let z = -27.15; z <= -22.2; z += 0.33) mesh(box(0.12, 7.6, 0.14), 'teakFrameV', 12.08, F + 3.8, z);
+  mesh(box(0.16, 0.12, 5.1), 'teakFrame', 12.08, F + 7.66, -24.68);
+  collide(10.7, 12.2, -27.25, -22.15, 7.6);
+  ceilingFan(6.0, -24.7);
+  ceilingLight(6.0, -20.3, 0.4);
+  curtains('z', 0.75, -26.0, -21.0, 1, 'curtainSage');
+  curtains('x', -18.831, 2.0, 10.0, -1, 'curtainSage'); // beside the sliding door to the terrace
+  wallArt(2.9, F + 5.6, -30.48, 0, 3.0, 1.9, 'art');
+
+  // ---- Dining & entrance passage ----
+  const tx = 16.8, tz = -25.2;
+  diningTable(item(tx, tz), 2.76, 4.75);
+  collide(tx - 1.39, tx + 1.41, tz - 2.35, tz + 2.35, 2.6);
+  chair(item(tx, tz - 3.2, 0));
+  chair(item(tx, tz + 3.3, Math.PI));
+  for (const dz of [-0.91, 0.9]) {
+    chair(item(tx - 2.24, tz + dz, Math.PI / 2));
+    chair(item(tx + 2.21, tz + dz, -Math.PI / 2));
+  }
+  pendant(tx, tz - 1.2, F + 5.4);
+  pendant(tx, tz + 1.2, F + 5.4);
+  // sideboard under the window onto the terrace
+  const sb = item(14.2, -19.5, Math.PI);
+  mesh(rbox(3.2, 2.6, 1.25, 0.04), 'furnWood', 0, 1.3, 0, sb);
+  for (let i = 0; i < 3; i++) mesh(box(0.98, 2.2, 0.02), 'laminate', -1.05 + i * 1.05, 1.35, 0.63, sb, { uv: false });
+  mesh(cyl(0.32, 0.22, 0.6, 16), 'ceramic', -0.9, 2.9, 0, sb, { uv: false });
+  collide(12.6, 15.8, -20.15, -18.83, 2.7);
+  curtains('x', -18.831, 11.0, 15.0, -1, 'curtainSage');
+  plant(12.95, -30.3, 0.95);
+  collide(12.35, 13.55, -30.9, -29.7, 2.5);
+  ceilingLight(20.2, -21.0, 0.4);
+  ceilingLight(20.2, -14.0, 0.4);
+  // shoe cabinet and mirror inside the main door
+  const sc = item(18.85, -15.0, Math.PI / 2);
+  mesh(rbox(3.0, 3.0, 1.1, 0.04), 'furnLight', 0, 1.5, 0, sc);
+  mesh(box(2.8, 0.02, 0.02), 'brass', 0, 2.6, 0.56, sc, { uv: false });
+  mesh(box(0.04, 2.6, 2.2), 'mirror', 18.29, F + 5.1, -15.0, group, { uv: false });
+  collide(18.25, 19.45, -16.5, -13.5, 3);
+  wallArt(22.12, F + 5.3, -11.4, -Math.PI / 2, 1.6, 2.2, 'art2');
+
+  // ---- Kitchen: L-shaped counter, sink under the shaft window, fridge ----
+  ffKitchen();
+
+  // ---- Bedroom 3 (master): bed against the rear wall, between its two windows ----
+  const bx = 5.6;
+  bed(item(bx, backAt(bx) + 3.3, slant), 5.0, 6.0, 'blanketSage');
+  collide(3.0, 8.2, backAt(bx) - 0.1, backAt(bx) + 6.4, 2.2);
+  for (const sx of [2.2, 9.0]) {
+    sideTable(item(sx, backAt(sx) + 0.62, slant));
+    collide(sx - 0.65, sx + 0.65, backAt(sx), backAt(sx) + 1.2, 2);
+  }
+  wardrobe(item(3.55, -38.2, Math.PI), 5.4);
+  collide(0.85, 6.25, -39.2, -37.25, 7.2);
+  armchair(item(10.25, -39.9, -2.55), 2.7, 2.5);
+  collide(8.95, 11.55, -41.2, -38.6, 2.8);
+  // dressing table in the dressing area, beside the bathroom door
+  const dt = item(7.05, -36.1, Math.PI / 2);
+  mesh(rbox(1.8, 2.5, 1.3, 0.04), 'furnLight', 0, 1.25, 0, dt);
+  mesh(box(1.5, 2.2, 0.04), 'furnLight', 0, 4.1, -0.63, dt, { uv: false });
+  mesh(box(1.25, 1.95, 0.03), 'mirror', 0, 4.1, -0.6, dt, { uv: false });
+  mesh(cyl(0.5, 0.45, 1.4, 16), 'sofaAccent', 0, 0.7, 1.05, dt, { uv: false });
+  collide(6.35, 7.75, -37.05, -35.15, 2.5);
+  ceilingFan(bx, -43.2);
+  ceilingLight(9.1, -34.0, 0.35);
+  curtains('z', 0.75, -45.0, -40.0, 1, 'curtainBlue');
+  wallArt(bx, F + 5.9, backAt(bx) + 0.05, slant, 3.2, 1.2, 'art2');
+
+  // ---- Bathroom 3 ----
+  wcUnit(2.0, -32.2, Math.PI / 2);
+  collide(0.75, 2.95, -32.85, -31.55, 2);
+  basinUnit(1.42, -34.45, Math.PI / 2);
+  collide(0.75, 2.05, -35.25, -33.65, 3);
+  showerUnit(4.6, -36.87, 0);
+  showerScreen(3.3, -35.25, 5.98, -35.25);
+  ceilingLight(3.4, -33.9, 0.32);
+
+  // ---- Bedroom 4: bed against the party wall, desk under the window into the kitchen void ----
+  bed(item(31.27, -33.3, -Math.PI / 2), 5.0, 6.1, 'blanketRust');
+  collide(28.2, 34.6, -35.9, -30.7, 2.2);
+  sideTable(item(34.0, -36.6, -Math.PI / 2));
+  sideTable(item(34.0, -30.0, -Math.PI / 2));
+  collide(33.4, 34.65, -37.2, -36.0, 2); collide(33.4, 34.65, -30.6, -29.4, 2);
+  wardrobe(item(27.4, -27.8, Math.PI), 4.0, 7.2, 1.8, 'furnLight');
+  collide(25.4, 29.4, -28.72, -26.88, 7.2);
+  mesh(box(1.2, 1.5, 3.0), 'furnWood', 23.3, F + 0.75, -32.9);
+  tv(item(22.75, -32.9, Math.PI / 2, F + 4.3), 3.2, 1.8);
+  collide(22.67, 23.9, -34.4, -31.4, 1.5);
+  const desk = item(26.7, -36.9);
+  mesh(rbox(3.8, 0.12, 1.75, 0.03), 'furnLight', 0, 2.45, 0, desk);
+  for (const sx of [-1, 1]) mesh(box(0.1, 2.4, 1.6), 'blackMatte', sx * 1.8, 1.2, 0, desk);
+  mesh(box(1.2, 0.8, 0.06), 'screen', -0.6, 2.95, -0.5, desk, { uv: false });
+  chair(item(26.7, -35.5, Math.PI));
+  collide(24.8, 28.6, -37.82, -36.0, 2.6);
+  collide(25.95, 27.45, -36.3, -34.75, 3);
+  ceilingFan(28.8, -33.0);
+  wallArt(34.62, F + 5.8, -33.3, -Math.PI / 2, 3.2, 1.3, 'art');
+
+  // ---- Bathroom 4 and the common toilet ----
+  wcUnit(33.4, -22.4, -Math.PI / 2);
+  collide(32.2, 34.67, -23.05, -21.75, 2);
+  basinUnit(29.8, -21.73, Math.PI);
+  collide(29.0, 30.6, -22.4, -21.07, 3);
+  showerUnit(29.3, -26.5, 0);
+  showerScreen(30.0, -26.45, 30.0, -24.85);
+  ceilingLight(31.5, -23.8, 0.32);
+  wcUnit(26.8, -24.6, -Math.PI / 2);
+  collide(25.6, 28.07, -25.25, -23.95, 2);
+  basinUnit(25.0, -21.73, Math.PI);
+  collide(24.2, 25.8, -22.4, -21.07, 3);
+  showerUnit(23.9, -26.5, 0);
+  ceilingLight(25.4, -23.8, 0.32);
+
+  // ---- Stair landing ----
+  plant(18.95, -1.55, 1.0);
+  collide(18.4, 19.5, -2.1, -1.0, 2.5);
+  ceilingLight(20.6, -4.8, 0.4);
+
+  // ---- Front terrace ----
+  const tb = item(6.0, -8.5);
+  mesh(cyl(1.25, 1.25, 0.1, 28), 'furnLight', 0, 2.4, 0, tb, { uv: false });
+  mesh(cyl(0.1, 0.1, 2.35, 10), 'blackMatte', 0, 1.2, 0, tb, { uv: false });
+  mesh(cyl(0.7, 0.75, 0.08, 20), 'blackMatte', 0, 0.04, 0, tb, { uv: false });
+  collide(4.75, 7.25, -9.75, -7.25, 2.5);
+  chair(item(6.0, -10.65, 0));
+  chair(item(6.0, -6.35, Math.PI));
+  collide(5.25, 6.75, -11.4, -9.9, 3); collide(5.25, 6.75, -7.1, -5.6, 3);
+  for (const [x, z, s] of [[1.8, -2.6, 1.2], [1.7, -16.8, 1.0], [16.3, -16.8, 1.05], [16.2, -2.6, 1.15]]) {
+    plant(x, z, s);
+    collide(x - 0.6 * s, x + 0.6 * s, z - 0.6 * s, z + 0.6 * s, 2.5);
+  }
+}
+
+function ffKitchen() {
+  const x0 = 22.674, x1 = 31.59, zr = -20.282, zf = -18.28; // run along the back (north) wall
+  const ex = 29.59, ez = -11.45;                              // run along the shaft (east) wall
+  const top = (xa, xb, za, zb) => mesh(box(xb - xa, 0.15, zb - za), 'graniteBlack', (xa + xb) / 2, F + 2.825, (za + zb) / 2);
+  const cab = (xa, xb, za, zb) => mesh(box(xb - xa, 2.4, zb - za), 'laminateSage', (xa + xb) / 2, F + 1.55, (za + zb) / 2);
+  const kick = (xa, xb, za, zb) => mesh(box(xb - xa, 0.35, zb - za), 'blackMatte', (xa + xb) / 2, F + 0.175, (za + zb) / 2);
+  top(x0, x1, zr, zf); cab(x0, x1, zr, zf - 0.1); kick(x0, x1, zr, zf - 0.3);
+  top(ex, x1, zf, ez); cab(ex + 0.1, x1, zf, ez); kick(ex + 0.3, x1, zf, ez);
+  for (let x = x0 + 0.8; x < ex - 0.6; x += 1.6) mesh(box(0.7, 0.05, 0.06), 'steel', x, F + 2.45, zf - 0.08, group, { uv: false });
+  for (let z = zf + 1.0; z < ez - 0.4; z += 1.6) mesh(box(0.06, 0.05, 0.7), 'steel', ex + 0.08, F + 2.45, z, group, { uv: false });
+  collide(x0, x1, zr, zf, 3);
+  collide(ex, x1, zf, ez, 3);
+  // hob and chimney on the back run
+  const hob = item(26.0, -19.3);
+  mesh(rbox(3.0, 0.08, 1.5, 0.03), 'screen', 0, 2.95, 0, hob, { uv: false });
+  for (const s of [-1, 1]) {
+    mesh(cyl(0.34, 0.34, 0.06, 20), 'steel', s * 0.75, 3.0, 0, hob, { uv: false });
+    mesh(cyl(0.18, 0.18, 0.08, 16), 'blackMatte', s * 0.75, 3.03, 0, hob, { uv: false });
+  }
+  mesh(cyl(0.45, 0.4, 0.5, 18), 'steel', 25.25, F + 3.28, -19.3, group, { uv: false });
+  mesh(box(2.8, 0.9, 1.6), 'steel', 26.0, F + 5.8, zr + 0.83, group, { uv: false });
+  const duct = CEIL - (F + 6.25);
+  mesh(box(1.0, duct, 0.9), 'steel', 26.0, F + 6.25 + duct / 2, zr + 0.48, group, { uv: false });
+  // wall cupboards either side of the chimney
+  for (const [xa, xb] of [[22.8, 24.4], [27.6, 31.45]]) {
+    mesh(box(xb - xa, 2.0, 1.1), 'laminate', (xa + xb) / 2, F + 6.0, zr + 0.58, group);
+    for (let x = xa + 1.6; x < xb - 0.3; x += 1.6) mesh(box(0.03, 1.9, 0.02), 'laminateGrey', x, F + 6.0, zr + 1.14, group, { uv: false });
+  }
+  // sink under the window onto the shaft
+  mesh(box(1.5, 0.04, 2.3), 'steel', 30.6, F + 2.93, -15.0, group, { uv: false });
+  mesh(box(1.0, 0.05, 1.0), 'blackMatte', 30.55, F + 2.955, -15.55, group, { uv: false });
+  mesh(box(1.0, 0.05, 1.0), 'blackMatte', 30.55, F + 2.955, -14.45, group, { uv: false });
+  mesh(cyl(0.05, 0.05, 1.1, 8), 'chrome', 31.3, F + 3.45, -15.0, group, { uv: false });
+  const spout = mesh(cyl(0.04, 0.04, 0.7, 8), 'chrome', 31.0, F + 3.95, -15.0, group, { uv: false });
+  spout.rotation.z = Math.PI / 2;
+  // fridge at the end of the counter
+  const fr = item(30.55, -10.52, -Math.PI / 2);
+  mesh(rbox(1.75, 5.8, 1.9, 0.06), 'steel', 0, 2.9, 0, fr);
+  mesh(box(1.7, 0.03, 0.02), 'blackMatte', 0, 3.9, 0.96, fr, { uv: false });
+  mesh(box(0.06, 1.4, 0.08), 'blackMatte', -0.7, 4.8, 1.0, fr, { uv: false });
+  mesh(box(0.06, 1.6, 0.08), 'blackMatte', -0.7, 2.6, 1.0, fr, { uv: false });
+  collide(29.6, 31.55, -11.4, -9.64, 6);
+  // a few things on the counter
+  mesh(cyl(0.22, 0.22, 0.5, 16), 'pot', 23.6, F + 3.15, -19.5, group, { uv: false });
+  mesh(box(1.1, 0.75, 0.85), 'laminateGrey', 30.6, F + 3.27, -12.6, group, { uv: false });
+  ceilingLight(26.6, -15.0, 0.4);
+}
+
+// ---------------------------------------------------------------------------
+// Roof terrace: a few planters and a bench
+// ---------------------------------------------------------------------------
+function roofFurniture() {
+  for (const [x, z, s] of [[1.6, -19.6, 1.2], [6.0, -19.6, 1.0], [10.4, -19.6, 1.1], [1.6, -30.0, 1.15], [1.6, -40.0, 1.0], [27.0, -11.0, 1.1]]) {
+    plant(x, z, s, F, 'potDark');
+    collide(x - 0.6 * s, x + 0.6 * s, z - 0.6 * s, z + 0.6 * s, 2.5);
+  }
+  const bench = item(1.45, -35.0, Math.PI / 2);
+  mesh(box(5.0, 0.16, 1.5), 'furnLight', 0, 1.45, 0, bench);
+  mesh(box(5.0, 1.1, 0.12), 'furnLight', 0, 2.2, -0.7, bench);
+  for (const sx of [-2.2, 2.2]) mesh(box(0.14, 1.4, 1.3), 'blackMatte', sx, 0.7, 0, bench);
+  collide(0.65, 2.25, -37.6, -32.4, 2.8);
+  ceilingLight(20.6, -4.8, 0.4); // in the mumty
 }

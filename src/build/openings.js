@@ -150,7 +150,7 @@ export function buildOpenings(ctx) {
 }
 
 /** A door leaf centred on its width (x) with its bottom at y=0; thickness along z. */
-function makeLeaf(mats, style, w, h, t, handleSide = 1) {
+export function makeLeaf(mats, style, w, h, t, handleSide = 1) {
   const g = new THREE.Group();
   const add = (geo, mat, x, y, z) => {
     const m = new THREE.Mesh(geo, mat);

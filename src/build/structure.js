@@ -88,8 +88,9 @@ export function buildStructure(ctx) {
           top: p.sill ? y1 === p.y1 : false,
           bottom: p.lintel ? y0 === p.y0 : false,
         });
-        if (vertical) B.box(w.x[0], w.x[1], y0, y1, p.a0, p.a1, m);
-        else B.box(p.a0, p.a1, y0, y1, w.z[0], w.z[1], m);
+        const ov = solid ? 0 : 0.02; // sills / lintels overlap their neighbours: no cracks at the T-junctions
+        if (vertical) B.box(w.x[0], w.x[1], y0, y1, p.a0 - ov, p.a1 + ov, m);
+        else B.box(p.a0 - ov, p.a1 + ov, y0, y1, w.z[0], w.z[1], m);
       }
       const c = vertical
         ? { x0: w.x[0], x1: w.x[1], z0: p.a0, z1: p.a1 }
@@ -312,38 +313,36 @@ function buildStair(ctx) {
   // Railings (steel posts + teak handrail) along the inner edges of both flights
   const rail = new THREE.Group();
   rail.name = 'stair-railing';
-  const postGeo = new THREE.CylinderGeometry(0.05, 0.05, 1, 8);
-  const steel = mats.get('steel');
-  const wood = mats.get('doorTeak');
-  const addRail = (z, xStart, xEnd, yStart, yEnd) => {
-    const n = 6;
-    for (let i = 0; i <= n; i++) {
-      const t = i / n;
-      const x = xStart + (xEnd - xStart) * t;
-      const yb = yStart + (yEnd - yStart) * t;
-      const post = new THREE.Mesh(postGeo, steel);
-      post.scale.y = 3;
-      post.position.set(x, yb + 1.5, z);
-      post.castShadow = true;
-      rail.add(post);
-    }
-    const dx = xEnd - xStart, dy = yEnd - yStart;
-    const L = Math.hypot(dx, dy);
-    const hr = new THREE.Mesh(new THREE.BoxGeometry(L + 0.3, 0.16, 0.22), wood);
-    hr.position.set((xStart + xEnd) / 2, (yStart + yEnd) / 2 + 3.05, z);
-    hr.rotation.z = Math.atan2(dy, dx);
-    hr.castShadow = true;
-    rail.add(hr);
-    const mid = new THREE.Mesh(new THREE.CylinderGeometry(0.035, 0.035, L, 8), steel);
-    mid.position.set((xStart + xEnd) / 2, (yStart + yEnd) / 2 + 1.6, z);
-    mid.rotation.z = Math.atan2(dy, dx) - Math.PI / 2;
-    rail.add(mid);
-  };
-  addRail(-4.9, S.firstRiser + S.tread * 0.5, S.landingX - S.tread * 0.5, LV.gf + S.rise, landTop - S.rise * 0.5);
-  addRail(-4.75, S.landingX - S.tread * 0.5, S.firstRiser + S.tread * 0.5, landTop + S.rise, LV.ff - S.rise * 0.5);
+  stairRail(mats, rail, -4.9, S.firstRiser + S.tread * 0.5, S.landingX - S.tread * 0.5, LV.gf + S.rise, landTop - S.rise * 0.5);
+  stairRail(mats, rail, -4.75, S.landingX - S.tread * 0.5, S.firstRiser + S.tread * 0.5, landTop + S.rise, LV.ff - S.rise * 0.5);
   house.add(rail);
 
-  // central collider between the flights + barrier at the top (first floor not modelled)
+  // central collider between the flights, at every level (the stair carries on to the roof)
   colliders.push({ x0: S.firstRiser, x1: S.landingX, z0: -4.97, z1: -4.68, y0: 0, y1: 40, id: 'stair-mid' });
-  colliders.push({ x0: S.firstRiser - 0.2, x1: S.firstRiser + S.tread * 2, z0: f2[0], z1: f2[1], y0: 0, y1: 40, id: 'stair-top' });
+}
+
+/** Steel posts, mid rail and teak handrail along a flight (plan line z, from (xStart, yStart) to (xEnd, yEnd)). */
+export function stairRail(mats, group, z, xStart, xEnd, yStart, yEnd) {
+  const postGeo = new THREE.CylinderGeometry(0.05, 0.05, 3, 8);
+  const steel = mats.get('steel');
+  const wood = mats.get('doorTeak');
+  const n = 6;
+  for (let i = 0; i <= n; i++) {
+    const t = i / n;
+    const post = new THREE.Mesh(postGeo, steel);
+    post.position.set(xStart + (xEnd - xStart) * t, yStart + (yEnd - yStart) * t + 1.5, z);
+    post.castShadow = true;
+    group.add(post);
+  }
+  const dx = xEnd - xStart, dy = yEnd - yStart;
+  const L = Math.hypot(dx, dy);
+  const hr = new THREE.Mesh(new THREE.BoxGeometry(L + 0.3, 0.16, 0.22), wood);
+  hr.position.set((xStart + xEnd) / 2, (yStart + yEnd) / 2 + 3.05, z);
+  hr.rotation.z = Math.atan2(dy, dx);
+  hr.castShadow = true;
+  group.add(hr);
+  const mid = new THREE.Mesh(new THREE.CylinderGeometry(0.035, 0.035, L, 8), steel);
+  mid.position.set((xStart + xEnd) / 2, (yStart + yEnd) / 2 + 1.6, z);
+  mid.rotation.z = Math.atan2(dy, dx) - Math.PI / 2;
+  group.add(mid);
 }

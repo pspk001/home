@@ -1,12 +1,14 @@
 import * as THREE from 'three';
 import { Batcher, extrudeXZ, regroup, roundedRect, worldUV } from '../geometry.js';
-import { LV, PLOT, rearZ, REAR_T, VOID, BAY, REAR_COLS, REAR_COL_D, voidOutline, DUCT, ductOutline, inDuct } from '../config.js';
+import { LV, PLOT, rearZ, REAR_T, VOID, BAY, REAR_COLS, REAR_COL_D, voidOutline, DUCT, ductOutline, inDuct, STAIR } from '../config.js';
+import { makeLeaf } from './openings.js';
 
 // ---------------------------------------------------------------------------
-// Everything outside the ground-floor rooms: the first-floor shell and roof
-// (as seen in the elevation), the white "C" frame, wood cladding, gates,
-// terrace, the double-height space at the rear and the
-// street/site around the plot.
+// Everything outside the rooms: the stair tower front, the rear wall of the
+// first floor, the roof (a walkable terrace) and its parapets, the mumty, the
+// white "C" frame, wood cladding, gates, the terrace edge, the glass wall of the
+// double-height space and the street/site around the plot. The first-floor walls
+// themselves are in firstfloor.js.
 // ---------------------------------------------------------------------------
 
 const FF0 = LV.ff, FF1 = LV.ffCeil;
@@ -28,14 +30,34 @@ function wallRun(B, { x, z, y0, y1, s0, s1, end = 'ext', open = [] }, colliders)
   const [t0, t1] = vertical ? x : z;
   const tc = (t0 + t1) / 2;
   const box = (p0, p1, ya, yb, m) => (vertical ? B.box(x[0], x[1], ya, yb, p0, p1, m) : B.box(p0, p1, ya, yb, z[0], z[1], m));
-  const face = vertical ? { nx: s0, px: s1, nz: end, pz: end, py: end, ny: null } : { nz: s0, pz: s1, nx: end, px: end, py: end, ny: null };
-  const lintel = { ...face, ny: 'reveal' };
+  // end faces only at the two ends of the run; inside an opening, jamb faces between
+  // its sill and head (a full-height end face would show its edge as a hairline on the
+  // wall face above and below the opening)
+  const faces = (lo, hi, top, bottom) => (vertical
+    ? { nx: s0, px: s1, nz: lo, pz: hi, py: top, ny: bottom }
+    : { nz: s0, pz: s1, nx: lo, px: hi, py: top, ny: bottom });
+  const jm = end || 'reveal';
+  const jamb = (a, ya, yb, d) => {
+    if (yb - ya < 1e-3) return;
+    if (vertical) {
+      if (d > 0) B.quad(jm, [t0, ya, a], [t1, ya, a], [t1, yb, a], [t0, yb, a], [0, 0, 1]);
+      else B.quad(jm, [t1, ya, a], [t0, ya, a], [t0, yb, a], [t1, yb, a], [0, 0, -1]);
+    } else if (d > 0) B.quad(jm, [a, ya, t1], [a, ya, t0], [a, yb, t0], [a, yb, t1], [1, 0, 0]);
+    else B.quad(jm, [a, ya, t0], [a, ya, t1], [a, yb, t1], [a, yb, t0], [-1, 0, 0]);
+  };
   const ops = [...open].sort((p, q) => p.a - q.a);
+  // one collider per solid piece, so doorways stay open for walking
+  const col = (p0, p1, ya, yb) => colliders && colliders.push(vertical
+    ? { x0: x[0], x1: x[1], z0: p0, z1: p1, y0: ya, y1: yb, id: 'shell' }
+    : { x0: p0, x1: p1, z0: z[0], z1: z[1], y0: ya, y1: yb, id: 'shell' });
   let cur = a0;
   for (const o of ops) {
-    if (o.a > cur) box(cur, o.a, y0, y1, face);
-    if (o.sill > y0) box(o.a, o.b, y0, o.sill, face);
-    if (o.head < y1) box(o.a, o.b, o.head, y1, lintel);
+    if (o.a > cur) { box(cur, o.a, y0, y1, faces(cur === a0 ? end : null, null, end, null)); col(cur, o.a, y0, y1); }
+    // (sill and lintel overlap the solid pieces slightly: no cracks at the T-junctions)
+    if (o.sill > y0) { box(o.a - 0.02, o.b + 0.02, y0, o.sill, faces(null, null, end, null)); col(o.a, o.b, y0, o.sill); }
+    if (o.head < y1) { box(o.a - 0.02, o.b + 0.02, o.head, y1, faces(null, null, end, 'reveal')); col(o.a, o.b, o.head, y1); }
+    jamb(o.a, o.sill, o.head, 1);
+    jamb(o.b, o.sill, o.head, -1);
     cur = o.b;
     // frame + glass
     const fb = (p0, p1, ya, yb, m, d = 0.2, into = B) => (vertical
@@ -56,11 +78,10 @@ function wallRun(B, { x, z, y0, y1, s0, s1, end = 'ext', open = [] }, colliders)
     if (o.glass !== false) fb(o.a + fw, o.b - fw, o.sill + fw, o.head - fw, o.glass || 'glassFacade', 0.03, GB);
     if (o.curtain) sheer(vertical, o.curtain > 0 ? t1 + 0.12 : t0 - 0.12, o.a + 0.1, o.b - 0.1, o.sill + 0.12, o.head - 0.05);
   }
-  if (a1 > cur) box(cur, a1, y0, y1, face);
-  if (colliders) colliders.push({ x0: x[0], x1: x[1], z0: z[0], z1: z[1], y0, y1, id: 'ff' });
+  if (a1 > cur) { box(cur, a1, y0, y1, faces(cur === a0 ? end : null, end, end, null)); col(cur, a1, y0, y1); }
 }
 
-/** Softly folded sheer curtain filling an opening (hides the unmodelled first-floor rooms). */
+/** Softly folded sheer curtain filling an opening. */
 function sheer(vertical, c, a, b, ya, yb) {
   const w = b - a, h = yb - ya;
   const geo = new THREE.PlaneGeometry(w, h, Math.max(8, Math.round(w * 6)), 1);
@@ -93,59 +114,59 @@ function sheerAt(x0, z0, x1, z1, ya, yb) {
 }
 
 export function buildExterior(ctx) {
-  const { mats, house, site, walkables, colliders } = ctx;
+  const { mats, house, site, walkables, colliders, pickables } = ctx;
   const B = new Batcher();
   GB = new Batcher();
   CTX = ctx;
   const get = (k) => mats.get(k);
+  const col = (x0, x1, z0, z1, y0, y1, id = 'shell') => colliders.push({ x0, x1, z0, z1, y0, y1, id });
 
   // =========================================================================
-  // FIRST FLOOR SHELL (layout not supplied → exterior envelope only)
+  // FIRST FLOOR: the parts that are not the flat's own walls (firstfloor.js)
   // =========================================================================
-  const win = (a, b, sill = FF0 + 3, head = FF0 + 8) => ({ a, b, sill, head });
-  // left wall
-  wallRun(B, { x: [0, T], z: [rearZ(0), -18.039], y0: FF0, y1: FF1, s0: 'ext', s1: 'ffInterior',
-    open: [win(-40.4, -35.4), win(-26.0, -21.0)] });
-  // back wall of the terrace (front of the main block)
-  wallRun(B, { x: [T, 17.5], z: [-18.831, -18.039], y0: FF0, y1: FF1, s0: 'ffInterior', s1: 'ext',
-    open: [win(3.0, 9.0, FF0 + 0.05, FF0 + 7.5), win(11.0, 15.0)] });
-  // tower (stair block) west wall, facing the terrace
-  wallRun(B, { x: [17.5, 17.5 + T], z: [-18.039, -0.75], y0: FF0, y1: FF1, s0: 'ext', s1: 'ffInterior',
-    open: [{ a: -7.6, b: -4.6, sill: FF0 + 0.05, head: FF0 + 7.2, glass: 'glass' }] });
-  // tower front: tan block with the tall stair window, then sage
-  wallRun(B, { x: [17.5, 25.3], z: [-T, 0], y0: FF0, y1: FF1, s0: 'ffInterior', s1: 'extTan', end: 'extTan',
-    open: [{ a: 19.8, b: 22.8, sill: FF0 + 2.0, head: FF1 - 0.6 }] });
-  wallRun(B, { x: [25.3, PLOT.width], z: [-T, 0], y0: FF0, y1: FF1, s0: 'ffInterior', s1: 'ext' });
-  // right (party) wall; beside the pipe line shaft it is only as thick as the
-  // ground-floor duct wall, so the shaft keeps its size all the way up
-  {
-    const W = PLOT.width, za = DUCT.z0 - DUCT.wall, zb = DUCT.z1 + DUCT.wall;
-    wallRun(B, { x: [W - T, W], z: [rearZ(W), za], y0: FF0, y1: FF1, s0: 'ffInterior', s1: 'ext' });
-    wallRun(B, { x: [DUCT.x1, W], z: [za, zb], y0: FF0, y1: FF1, s0: 'pDuct', s1: 'ext', end: null });
-    wallRun(B, { x: [W - T, W], z: [zb, -T], y0: FF0, y1: FF1, s0: 'ffInterior', s1: 'ext' });
-  }
-  // walls around the double-height space (over the dining end and the kitchen)
-  buildVoidWalls(B);
+  // stair tower front: tan block with the tall stair window, then sage
+  wallRun(B, { x: [17.5, 25.3], z: [-T, 0], y0: FF0, y1: FF1, s0: 'pStair', s1: 'extTan', end: 'extTan',
+    open: [{ a: 19.8, b: 22.8, sill: FF0 + 2.0, head: FF1 - 0.6 }] }, colliders);
+  wallRun(B, { x: [25.3, PLOT.width], z: [-T, 0], y0: FF0, y1: FF1, s0: 'pStair', s1: 'ext' }, colliders);
+  // glass railing on grid F, where the dining area overlooks the double-height space
+  buildVoidRailing(B, col);
   // slanted rear wall. Behind the dining area and the kitchen it is a glass wall
-  // (buildGlassWall); over the puja room and the old garden bay it is the first-floor wall.
+  // (buildGlassWall); over the puja room and the old garden bay it is bedroom 3's wall.
   // endA / endB: face at the run's start / end (null where it abuts the glass wall)
   const rearRun = (xa, xb, wins, endA = 'ext', endB = 'ext') => {
     let cur = xa;
     const seg = (p, q, y0, y1, ends = 'ext') => {
       const pts = [[p, rearZ(p) + REAR_T], [q, rearZ(q) + REAR_T], [q, rearZ(q)], [p, rearZ(p)]];
       const [e0, e1] = Array.isArray(ends) ? ends : [ends, ends];
-      B.prism(pts, y0, y1, { top: 'ext', bottom: 'reveal', sides: ['ffInterior', e1, 'ext', e0] });
+      B.prism(pts, y0, y1, { top: 'ext', bottom: 'reveal', sides: ['pFFBed3', e1, 'ext', e0] });
+    };
+    for (let x = xa; x < xb - 1e-3; x += 1) {
+      const xe = Math.min(xb, x + 1);
+      col(x, xe, rearZ(x) - 0.05, rearZ(xe) + REAR_T, FF0, FF1, 'rear');
+    }
+    // jamb face between sill and head (d = +1 faces +x, -1 faces -x)
+    const jamb = (x, ya, yb, d) => {
+      const za = rearZ(x), zb = rearZ(x) + REAR_T;
+      if (d > 0) B.quad('ext', [x, ya, zb], [x, ya, za], [x, yb, za], [x, yb, zb], [1, 0, 0]);
+      else B.quad('ext', [x, ya, za], [x, ya, zb], [x, yb, zb], [x, yb, za], [-1, 0, 0]);
     };
     for (const [a, b, tall] of wins) {
       const s = tall ? FF0 + 2.2 : FF0 + 3.5, h = tall ? FF0 + 8.9 : FF0 + 7.5;
-      seg(cur, a, FF0, FF1, [cur === xa ? endA : 'ext', 'ext']);
-      seg(a, b, FF0, s, null); // below / above the window: ends abut the jambs
-      seg(a, b, h, FF1, null);
+      seg(cur, a, FF0, FF1, [cur === xa ? endA : null, null]);
+      seg(a - 0.02, b + 0.02, FF0, s, null); // below / above the window (overlapping the solid pieces a little: no cracks)
+      seg(a - 0.02, b + 0.02, h, FF1, null);
+      jamb(a, s, h, 1);
+      jamb(b, s, h, -1);
       const zc = (rearZ(a) + rearZ(b)) / 2 + REAR_T / 2;
       if (!tall) {
-        GB.box(a, b, s, h, zc - 0.02, zc + 0.02, 'glassFacade');
+        GB.box(a + 0.12, b - 0.12, s + 0.12, h - 0.12, zc - 0.015, zc + 0.015, 'glass');
         B.box(a, b, s, s + 0.14, zc - 0.1, zc + 0.1, 'frameDark');
         B.box(a, b, h - 0.14, h, zc - 0.1, zc + 0.1, 'frameDark');
+        B.box(a, a + 0.14, s + 0.14, h - 0.14, zc - 0.1, zc + 0.1, 'frameDark');
+        B.box(b - 0.14, b, s + 0.14, h - 0.14, zc - 0.1, zc + 0.1, 'frameDark');
+        const zi = (x, d) => rearZ(x) + REAR_T + d;
+        B.prism([[a - 0.1, zi(a - 0.1, 0.18)], [b + 0.1, zi(b + 0.1, 0.18)], [b + 0.1, zi(b + 0.1, -0.05)], [a - 0.1, zi(a - 0.1, -0.05)]],
+          s - 0.06, s + 0.02, { top: 'graniteBlack', bottom: 'graniteBlack', sides: ['graniteBlack', 'graniteBlack', 'graniteBlack', 'graniteBlack'] });
       } else {
         // boxes that follow the slanted wall: z centre = rearZ(x) + off
         const sl = (x0, x1, y0, y1, off, d, m, into = B) => into.prism(
@@ -164,23 +185,24 @@ export function buildExterior(ctx) {
       }
       cur = b;
     }
-    seg(cur, xb, FF0, FF1, [cur === xa ? endA : 'ext', endB]);
+    seg(cur, xb, FF0, FF1, [cur === xa ? endA : null, endB]);
   };
-  rearRun(0, REAR_COLS[0][0], [[2.2, 4.6], [7.4, 10.2]], 'ext', null);
+  rearRun(0, REAR_COLS[0][0], [[1.3, 3.0], [8.2, 9.9]], 'ext', null);
   buildGlassWall(B);
+  for (const [a, b] of REAR_COLS) col(a, b, rearZ(a) - 0.05, rearZ(b) + REAR_COL_D, FF0, FF1, 'rear');
 
-  // FF floor finish (inside) and terrace tiles
-  const terrace = [[T, -18.039], [17.5, -18.039], [17.5, 0], [T, 0]];
-  B.box(T, 17.5, FF0, FF0 + 0.05, -18.039, 0, { py: 'terrace', all: 'terrace', ny: null });
-
-  // ---- roof slab + parapets ------------------------------------------------
+  // ---- roof slab: a walkable terrace, open over the stair and the pipe line shaft ----
   const roofOutline = [
     [0, -18.039], [17.5, -18.039], [17.5, -T], [PLOT.width, -T], [PLOT.width, rearZ(PLOT.width)], [0, rearZ(0)],
   ];
   const vp = voidOutline();
-  // (the pipe line shaft stays open to the sky; its slab edge is plastered like the shaft)
-  const roofGeo = regroup(extrudeXZ(roofOutline, [vp, ductOutline()], FF1, LV.roof), (gi, c) => (gi === 2 && inDuct(c.x, c.z) ? 3 : gi));
-  const roof = new THREE.Mesh(roofGeo, [get('terrace'), get('ceiling'), get('slabEdge'), get('pDuct')]);
+  const inStair = (x, z) => x > STAIR.firstRiser - 0.05 && x < PLOT.width - T + 0.05 && z > STAIR.z0 - 0.05 && z < STAIR.z1 + 0.02;
+  // slab edges are plastered like the pipe line shaft / the stair well they face
+  const roofWell = [[STAIR.firstRiser, STAIR.z0], [PLOT.width - T, STAIR.z0], [PLOT.width - T, STAIR.z1], [STAIR.firstRiser, STAIR.z1]];
+  const roofGeo = regroup(extrudeXZ(roofOutline, [vp, ductOutline(), roofWell], FF1, LV.roof),
+    (gi, c) => (gi !== 2 ? gi : inDuct(c.x, c.z) ? 3 : inStair(c.x, c.z) ? 4 : 2));
+  const roof = new THREE.Mesh(roofGeo, [get('terrace'), get('ceiling'), get('slabEdge'), get('pDuct'), get('pStair')]);
+  roof.name = 'roof';
   roof.castShadow = roof.receiveShadow = true;
   house.add(roof);
   // solid roof over the double-height space, its soffit left as board-formed concrete
@@ -188,6 +210,7 @@ export function buildExterior(ctx) {
   vroof.name = 'void-roof';
   vroof.castShadow = vroof.receiveShadow = true;
   house.add(vroof);
+  for (const m of [roof, vroof]) { m.userData.room = 'roof'; walkables.push(m); pickables.push(m); }
   // keep the tower facade continuous across the roof-slab edge
   B.box(17.5, 25.3, FF1, LV.roof, -T, 0, { all: 'extTan', ny: null, py: null });
   B.box(25.3, PLOT.width, FF1, LV.roof, -T, 0, { all: 'ext', ny: null, py: null });
@@ -195,31 +218,40 @@ export function buildExterior(ctx) {
   const parapet = (x0, x1, z0, z1) => {
     B.box(x0, x1, P0, P1 - 0.25, z0, z1, 'ext');
     B.box(x0 - 0.05, x1 + 0.05, P1 - 0.25, P1, z0 - 0.05, z1 + 0.05, 'white');
+    col(x0, x1, z0, z1, P0, P1, 'parapet');
   };
   parapet(0, pt, rearZ(0), -18.039);
   parapet(0, 17.5, -18.039 - pt, -18.039);
   parapet(17.5, 17.5 + pt, -18.039, -9.635);
   parapet(PLOT.width - pt, PLOT.width, rearZ(PLOT.width), DUCT.z0 - pt); // then round the pipe line shaft (buildDuctShaft)
-  const rearPar = (xa, xb) => B.prism([[xa, rearZ(xa) + pt], [xb, rearZ(xb) + pt], [xb, rearZ(xb)], [xa, rearZ(xa)]], P0, P1, { top: 'white', bottom: null, sides: ['ext', 'ext', 'ext', 'ext'] });
+  const rearPar = (xa, xb) => {
+    B.prism([[xa, rearZ(xa) + pt], [xb, rearZ(xb) + pt], [xb, rearZ(xb)], [xa, rearZ(xa)]], P0, P1, { top: 'white', bottom: null, sides: ['ext', 'ext', 'ext', 'ext'] });
+    for (let x = xa; x < xb - 1e-3; x += 1) {
+      const xe = Math.min(xb, x + 1);
+      col(x, xe, rearZ(x) - 0.05, rearZ(xe) + pt, P0, P1, 'parapet');
+    }
+  };
   rearPar(0, PLOT.width);
-  buildDuctShaft(B, pt);
+  buildDuctShaft(B, pt, col);
 
-  // ---- mumty (stair head-room) ---------------------------------------------
-  const M0 = LV.roof, M1 = LV.mumtyCeil;
-  wallRun(B, { x: [17.5, 25.3], z: [-0.6, 0], y0: M0, y1: M1, s0: 'ffInterior', s1: 'extTan', end: 'extTan',
-    open: [{ a: 19.6, b: 23.6, sill: M1 - 3.2, head: M1 - 2.2 }] });
-  wallRun(B, { x: [25.3, PLOT.width], z: [-0.6, 0], y0: M0, y1: M1, s0: 'ffInterior', s1: 'ext' });
-  wallRun(B, { x: [17.5, PLOT.width], z: [-9.635, -9.035], y0: M0, y1: M1, s0: 'extTan', s1: 'ffInterior',
-    open: [{ a: 21.0, b: 24.0, sill: M0 + 0.05, head: M0 + 7.0, glass: false }] });
-  wallRun(B, { x: [17.5, 18.1], z: [-9.035, -0.6], y0: M0, y1: M1, s0: 'extTan', s1: 'ffInterior' });
-  wallRun(B, { x: [PLOT.width - 0.6, PLOT.width], z: [-9.035, -0.6], y0: M0, y1: M1, s0: 'ffInterior', s1: 'ext' });
+  // ---- mumty (stair head room), with a door out onto the roof terrace ------------
+  const M0 = LV.roof, M1 = LV.mumtyCeil, md = [19.2, 22.2];
+  // (its walls stand flush with the stair-tower walls below, so the stair well runs straight up)
+  const mf = -0.792, mr = -8.843;
+  wallRun(B, { x: [17.5, 25.3], z: [mf, 0], y0: M0, y1: M1, s0: 'pStair', s1: 'extTan', end: 'extTan',
+    open: [{ a: 19.6, b: 23.6, sill: M1 - 3.2, head: M1 - 2.2 }] }, colliders);
+  wallRun(B, { x: [25.3, PLOT.width], z: [mf, 0], y0: M0, y1: M1, s0: 'pStair', s1: 'ext' }, colliders);
+  wallRun(B, { x: [17.5, PLOT.width], z: [-9.635, mr], y0: M0, y1: M1, s0: 'extTan', s1: 'pStair',
+    open: [{ a: md[0], b: md[1], sill: M0, head: M0 + 7.0, glass: false, frame: false }] }, colliders);
+  wallRun(B, { x: [17.5, 18.25], z: [mr, mf], y0: M0, y1: M1, s0: 'extTan', s1: 'pStair' }, colliders);
+  wallRun(B, { x: [PLOT.width - T, PLOT.width], z: [mr, mf], y0: M0, y1: M1, s0: 'pStair', s1: 'ext' }, colliders);
   B.box(17.3, PLOT.width, M1, LV.mumtyTop, -9.9, 0.2, { py: 'white', ny: 'ceiling', all: 'white' });
-  // mumty door leaf (closed)
-  B.box(21.1, 23.9, M0 + 0.05, M0 + 6.95, -9.45, -9.2, 'doorWood');
+  mumtyDoor(B, md, M0, -9.635, mr);
 
   // sage water-tank enclosure beside the mumty (small block seen in the elevation)
   B.box(14.3, 17.5, LV.roof, LV.roof + 4.6, -22.6, -18.6, { all: 'ext', py: 'white', ny: null });
   B.box(14.2, 17.6, LV.roof + 4.6, LV.roof + 4.85, -22.7, -18.5, 'white');
+  col(14.2, 17.6, -22.7, -18.5, LV.roof, LV.roof + 4.85, 'tank');
 
   // =========================================================================
   // FRONT ELEVATION FEATURES
@@ -262,6 +294,9 @@ export function buildExterior(ctx) {
   // side parapet of the terrace (left edge)
   B.box(0, T, FF0, FF0 + 3.3, -18.039, -1.2, 'ext');
   B.box(-0.04, T + 0.04, FF0 + 3.3, FF0 + 3.55, -18.1, -1.2, 'white');
+  // the terrace edge for walking: the frame's bottom band, the parapet and railing in front, the side parapet
+  col(0, 17.5, -1.2, 1.15, LV.gfCeil, FF0 + 4.5, 'terrace-edge');
+  col(0, T, -18.039, -1.2, FF0, FF0 + 3.55, 'terrace-edge');
 
   // Tall wood cladding panel with white frame (right side)
   {
@@ -367,61 +402,34 @@ export function buildExterior(ctx) {
 }
 
 // ---------------------------------------------------------------------------
-// Double-height space: first-floor walls around it, and the railing along the
-// first-floor edge on grid F that looks down into it.
+// Double-height space: the glass railing along the first-floor edge on grid F, where
+// the dining area looks down into it. (The walls round it are in plan-ff.js.)
 // ---------------------------------------------------------------------------
-function buildVoidWalls(B) {
-  const I = 'ffInterior';
-  const zF = VOID.zFront;      // void-side face of the front wall
-  const zR = zF + 0.5;         // room-side face
-  const wood = 'doorTeak';
+function buildVoidRailing(B, col) {
   // teak members: joint-free grain that runs along each member
   const tb = (x0, x1, y0, y1, z0, z1) => B.box(x0, x1, y0, y1, z0, z1, teak(Math.max(x1 - x0, z1 - z0), y1 - y0));
-
-  // walls above the bedroom-1 and bedroom-2 walls, facing each other across the hall;
-  // the bedroom-1 side starts at the rear-wall column on grid 2 (the old garden bay
-  // behind it now has a first-floor slab), and both run forward to the edge on grid F
   const zE = VOID.hallFront, hx = VOID.hallX1;
-  // teak-framed windows: a big one on the bedroom-1 side (6 ft tall, sill 2 ft above
-  // the first floor) and the original smaller one at the kitchen end of the bedroom-2 side
-  const win = (a, b, sill, head, curtain) => ({ a, b, sill: FF0 + sill, head: FF0 + head, frame: wood, glass: 'glass', curtain });
-  wallRun(B, { x: [11.879, VOID.x0], z: [rearZ(VOID.x0) + REAR_COL_D, zE], y0: FF0, y1: FF1, s0: I, s1: I, end: I,
-    open: [win(-40.4, -33.2, 2, 8, -1)] });
-  wallRun(B, { x: [hx, hx + 0.5], z: [zR, zE], y0: FF0, y1: FF1, s0: I, s1: I, end: I,
-    open: [win(-37.0, -34.4, 3, 7.5, 1)] });
-
-  // front wall over the kitchen / bedroom-2 line
-  wallRun(B, { x: [hx, PLOT.width - T], z: [zF, zR], y0: FF0, y1: FF1, s0: I, s1: I, end: I });
-
-  // -- First-floor edge on grid F, overlooking the hall: a strip of wooden deck on the
-  //    slab and a glass railing with a teak handrail along the edge --
-  {
-    B.box(VOID.x0, hx, FF0, FF0 + 0.05, zE, zE + 2.47, { py: 'wood', all: 'wood', ny: null });
-    const zr = zE + 0.12;
-    tb(VOID.x0, hx, FF0 + 3.35, FF0 + 3.55, zE - 0.02, zr + 0.13);   // handrail
-    tb(VOID.x0, hx, FF0, FF0 + 0.18, zE, zr + 0.08);                  // shoe rail
-    const step = (hx - VOID.x0 - 0.2) / 4;
-    for (let i = 0; i <= 4; i++) {
-      const x = VOID.x0 + 0.1 + i * step;
-      B.box(x - 0.05, x + 0.05, FF0, FF0 + 3.35, zr - 0.05, zr + 0.05, 'steel');
-    }
-    GB.box(VOID.x0 + 0.05, hx - 0.05, FF0 + 0.2, FF0 + 3.33, zr - 0.012, zr + 0.012, 'glass');
+  const zr = zE + 0.12;
+  tb(VOID.x0, hx, FF0 + 3.35, FF0 + 3.55, zE - 0.02, zr + 0.13);   // handrail
+  tb(VOID.x0, hx, FF0, FF0 + 0.18, zE, zr + 0.08);                  // shoe rail
+  const step = (hx - VOID.x0 - 0.2) / 4;
+  for (let i = 0; i <= 4; i++) {
+    const x = VOID.x0 + 0.1 + i * step;
+    B.box(x - 0.05, x + 0.05, FF0, FF0 + 3.35, zr - 0.05, zr + 0.05, 'steel');
   }
+  GB.box(VOID.x0 + 0.05, hx - 0.05, FF0 + 0.2, FF0 + 3.33, zr - 0.012, zr + 0.012, 'glass');
+  col(VOID.x0, hx, zE - 0.02, zr + 0.13, FF0, FF0 + 3.55, 'void-rail');
 }
 
 // ---------------------------------------------------------------------------
 // Pipe line area: the plumbing shaft beside the guest room is open to the sky, as in
 // the original drawing. The slabs are cut round it (structure.js and the roof above);
-// here are its walls on the first floor and a parapet round the opening on the roof.
+// its first-floor walls are in plan-ff.js, and here is the parapet round the opening on the roof.
 // ---------------------------------------------------------------------------
-function buildDuctShaft(B, pt) {
-  const { x0, x1, z0, z1, wall: t } = DUCT;
-  const I = 'ffInterior', D = 'pDuct', W = PLOT.width;
-  // first floor: guest-room side, rear and front (stair side) walls; the party wall is built with the shell
-  B.box(x0 - t, x0, FF0, FF1, z0 - t, z1 + t, { all: I, px: D, py: null, ny: null });
-  B.box(x0, x1, FF0, FF1, z0 - t, z0, { all: I, pz: D, nx: null, px: null, py: null, ny: null });
-  B.box(x0, x1, FF0, FF1, z1, z1 + t, { all: I, nz: D, nx: null, px: null, py: null, ny: null });
-  // roof: parapet on three sides (the mumty wall closes the front), sage outside,
+function buildDuctShaft(B, pt, col) {
+  const { x0, x1, z0, z1 } = DUCT;
+  const D = 'pDuct', W = PLOT.width;
+  // parapet on three sides (the mumty wall closes the front), sage outside,
   // plastered inside like the shaft, with a white coping
   const P0 = LV.roof, P1 = LV.parapet - 0.25;
   const cap = (xa, xb, za, zb) => B.box(xa - 0.05, xb + 0.05, P1, LV.parapet, za - 0.05, zb + 0.05, 'white');
@@ -431,6 +439,30 @@ function buildDuctShaft(B, pt) {
   cap(x0 - pt, x0, z0 - pt, z1);
   cap(x0, x1, z0 - pt, z0);
   cap(x1, W, z0 - pt, z1);
+  col(x0 - pt, x0, z0 - pt, z1, P0, LV.parapet, 'parapet');
+  col(x0, x1, z0 - pt, z0, P0, LV.parapet, 'parapet');
+  col(x1, W, z0 - pt, z1, P0, LV.parapet, 'parapet');
+}
+
+/** The mumty's door out onto the roof: teak-look frame, threshold and a leaf swung open outwards. */
+function mumtyDoor(B, [a, b], y0, z0, z1) {
+  const { mats, house, colliders, walkables } = CTX;
+  const fw = 0.25, head = y0 + 7.0;
+  B.box(a, a + fw, y0, head, z0 - 0.05, z1 + 0.05, 'doorWood');
+  B.box(b - fw, b, y0, head, z0 - 0.05, z1 + 0.05, 'doorWood');
+  B.box(a, b, head - fw, head, z0 - 0.05, z1 + 0.05, 'doorWood');
+  const TB = new Batcher();
+  TB.box(a + fw, b - fw, y0 - 0.02, y0 + 0.04, z0, z1, 'marble');
+  const th = TB.build((k) => mats.get(k), { name: 'mumty-threshold', castShadow: false });
+  th.traverse((o) => o.isMesh && walkables.push(o));
+  house.add(th);
+  const clear = b - a - 2 * fw, leafT = 0.13;
+  const leaf = makeLeaf(mats, 'wood', clear, head - fw - y0 - 0.04, leafT, 1);
+  const along = a + fw + leafT / 2;
+  leaf.rotation.y = Math.PI / 2;
+  leaf.position.set(along, y0 + 0.02, z0 - (clear / 2 + 0.02));
+  house.add(leaf);
+  colliders.push({ x0: along - leafT, x1: along + leafT, z0: z0 - clear, z1: z0, y0, y1: head, id: 'leaf' });
 }
 
 // ---------------------------------------------------------------------------
