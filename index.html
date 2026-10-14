@@ -3,7 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-    <meta name="description" content="Surbhi Bhawan: interactive 3D model of a 35′-5″ × 49′-9″ house, with textured rooms, dollhouse cut-away, plan view and walk-through." />
+    <meta name="description" content="Surbhi Bhawan: interactive 3D model of a 35′-5″ × 49′-9″ house (ground floor, a 2BHK first floor and a roof terrace), with textured rooms, dollhouse cut-away, plan view and walk-through." />
     <title>Surbhi Bhawan</title>
     <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Crect width='24' height='24' rx='5' fill='%23161b22'/%3E%3Cpath d='M4 12 12 5l8 7v7h-5v-5H9v5H4z' fill='%23f2b84b'/%3E%3C/svg%3E" />
   </head>
@@ -22,7 +22,7 @@
       <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 11.5 12 4l9 7.5V20a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z" /></svg>
       <div>
         <h1>Surbhi Bhawan</h1>
-        <p>35′-5″ × 49′-9″ plot · Ground floor + elevation</p>
+        <p>35′-5″ × 49′-9″ plot · Ground + first floor + roof</p>
       </div>
     </header>
 
@@ -43,6 +43,12 @@
         <button type="button" data-view="walk" aria-pressed="false">
           <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="13" cy="4.5" r="2" /><path d="M10 21l2-6 3 3v3M9 11l2-3 4 1 2 3M11 8l-1 5 2 2" /></svg>Walk
         </button>
+      </div>
+
+      <div class="floors" role="group" aria-label="Floor">
+        <button type="button" data-floor="gf" aria-pressed="true">Ground floor</button>
+        <button type="button" data-floor="ff" aria-pressed="false">First floor</button>
+        <button type="button" data-floor="roof" aria-pressed="false">Roof</button>
       </div>
 
       <section class="rooms">
@@ -81,9 +87,10 @@
       <button id="ic-close" type="button" class="icon-btn" aria-label="Close room info">✕</button>
       <h3 id="ic-name">Room</h3>
       <dl>
+        <div><dt>Level</dt><dd id="ic-level"></dd></div>
         <div><dt>Size</dt><dd id="ic-size"></dd></div>
         <div><dt>Area</dt><dd id="ic-area"></dd></div>
-        <div><dt>Floor</dt><dd id="ic-floor"></dd></div>
+        <div><dt>Finish</dt><dd id="ic-floor"></dd></div>
       </dl>
       <p id="ic-note"></p>
       <button id="ic-walk" type="button" class="primary">Walk inside</button>
@@ -91,6 +98,7 @@
 
     <div id="walk-hud" hidden>
       <div class="walk-top">
+        <span id="walk-floor" class="walk-floor">Ground floor</span>
         <span id="walk-room">Lobby</span>
         <button id="walk-exit" type="button">Exit walk</button>
       </div>
@@ -109,11 +117,12 @@
       <ul>
         <li><b>Rotate</b> drag · <b>Zoom</b> scroll / pinch · <b>Pan</b> right-drag / two fingers</li>
         <li><b>Click a room</b> (or its label / the minimap) to fly into it</li>
+        <li><b>Floor</b> buttons switch between the ground floor, the first floor and the roof</li>
         <li><b>Wall cut</b> slices the walls so you can see inside from any angle</li>
-        <li><b>Walk</b> mode: drag to look, WASD / arrows to move, double-click the floor to go there, climb the stairs</li>
-        <li>Keys: <kbd>1</kbd>–<kbd>4</kbd> views · <kbd>L</kbd> labels · <kbd>F</kbd> furniture · <kbd>R</kbd> rotate · <kbd>Esc</kbd> back</li>
+        <li><b>Walk</b> mode: drag to look, WASD / arrows to move, double-click the floor to go there. The stairs go all the way up to the roof</li>
+        <li>Keys: <kbd>1</kbd>–<kbd>4</kbd> views · <kbd>PgUp</kbd> <kbd>PgDn</kbd> floors · <kbd>L</kbd> labels · <kbd>F</kbd> furniture · <kbd>R</kbd> rotate · <kbd>Esc</kbd> back</li>
       </ul>
-      <p class="fine">Ground floor modelled from the supplied plan. The dining hall, kitchen and old garden are one open space; over the dining area and the kitchen it rises double height, overlooked from the first floor and lit by a tall glass wall that rises from door height to the roof, facing the sunrise. The first floor is shown as an outer shell matching the elevation, as its layout was not provided.</p>
+      <p class="fine">Ground floor modelled from the supplied plan. The dining hall, kitchen and old garden are one open space; over the dining area and the kitchen it rises double height, lit by a tall glass wall facing the sunrise. The first floor is a proposed 2BHK flat: living room opening onto the front terrace, dining area overlooking the double-height hall, kitchen, two bedrooms each with an attached bathroom, and a common toilet. The stair carries on to a walkable roof terrace.</p>
     </div>
 
     <script type="module" src="/src/main.js"></script>
