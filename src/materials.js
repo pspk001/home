@@ -114,6 +114,13 @@ export class MaterialLibrary {
     paint('reveal', 0xece7de);
     paint('ceiling', 0xf7f6f1, 0.95);
     paint('ffInterior', 0xefebe3);
+    // first-floor flat
+    paint('pFFLiving', 0xe9e1d3);   // living, dining and entrance passage (one open space)
+    paint('pFFKitchen', 0xf3f0e8);
+    paint('pFFBed3', 0xdde3e7);     // master bedroom: pale grey-blue
+    paint('accentBed3', 0x6e8697);  // slate-blue wall behind the bed
+    paint('pFFBed4', 0xeee3d4);     // warm cream
+    paint('accentBed4', 0xb08f72);  // caramel wall behind the bed
 
     // Exterior finishes from the elevation
     extPaint('ext', COLORS.sage);
@@ -212,12 +219,17 @@ export class MaterialLibrary {
     fab('blanketOlive', [120, 128, 76], 77);
     fab('pillow', [250, 248, 244], 78);
     fab('chairFabric', [150, 120, 96], 79);
+    fab('blanketSage', [112, 136, 118], 85);
+    fab('blanketRust', [172, 98, 62], 86);
+    fab('sofaGrey', [146, 148, 150], 87);
     const curtain = (key, base, seed) => {
       const f = TX.fabric({ N: 256, base, seed, weave: 0.05 });
       this._add(key, new THREE.MeshStandardMaterial({ map: this._tex(f.map, 1.2), roughness: 0.95, side: THREE.DoubleSide }), { cap: false });
     };
     curtain('curtainBlue', [120, 146, 176], 81);
     curtain('curtainBeige', [214, 196, 168], 82);
+    curtain('curtainSage', [150, 168, 146], 89);
+    curtain('curtainRust', [190, 132, 98], 90);
     const sheerF = TX.fabric({ N: 256, base: [246, 242, 234], seed: 84, weave: 0.03 });
     this._add('curtainSheer', new THREE.MeshStandardMaterial({ map: this._tex(sheerF.map, 1.2), roughness: 0.95, transparent: true, opacity: 0.86, depthWrite: false, side: THREE.DoubleSide }), { cap: false });
     const walnut = this._texPair(TX.planks({ N: 512, rows: 4, minLen: 1.5, maxLen: 1.6, gap: 0, colors: [[110, 74, 46], [96, 64, 40]], grain: 1.2, seed: 35, bevel: false }), 3);

@@ -1,4 +1,5 @@
 import { rearZ, REAR_T, DUCT } from './config.js';
+import { FF_ROOMS, ROOF_ROOMS } from './plan-ff.js';
 
 // ---------------------------------------------------------------------------
 // Ground-floor plan data.
@@ -120,6 +121,17 @@ export const ROOMS = [
     note: 'Service shaft for plumbing, open to the sky: it runs up through the first floor and the roof. The guest room window and the toilet and stair ventilators open onto it.' },
 ];
 
+for (const r of ROOMS) r.floorId = 'gf';
+
+/** The three levels you can visit, and every room on them (first floor and roof in plan-ff.js). */
+export const FLOORS = [
+  { id: 'gf', name: 'Ground floor', short: 'Ground' },
+  { id: 'ff', name: 'First floor', short: 'First' },
+  { id: 'roof', name: 'Roof', short: 'Roof' },
+];
+export const ALL_ROOMS = [...ROOMS, ...FF_ROOMS, ...ROOF_ROOMS];
+export const roomById = (id) => ALL_ROOMS.find((r) => r.id === id) || null;
+
 // Helpers -------------------------------------------------------------------
 export function roomBounds(room) {
   let x0 = Infinity, x1 = -Infinity, z0 = Infinity, z1 = -Infinity;
@@ -147,8 +159,10 @@ export function roomArea(room) {
   }, 0);
 }
 
-export function findRoomAt(x, z) {
-  for (const room of ROOMS) {
+/** Room containing the plan point on the given floor ('gf' | 'ff' | 'roof'). */
+export function findRoomAt(x, z, floor = 'gf') {
+  for (const room of ALL_ROOMS) {
+    if (room.floorId !== floor) continue;
     for (const [a, b, c, d] of room.rects) {
       if (x >= a && x <= b && z >= c && z <= d) return room;
     }

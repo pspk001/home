@@ -90,6 +90,14 @@ kbd {
 .seg button:hover { color: var(--text); background: var(--chip-hover); }
 .seg button[aria-pressed="true"] { background: var(--accent); color: var(--accent-ink); }
 
+.floors { display: grid; grid-template-columns: repeat(3, 1fr); gap: 4px; padding: 3px; background: var(--chip); border-radius: 10px; }
+.floors button {
+  border: 0; border-radius: 7px; padding: 6px 2px; background: transparent; color: var(--muted);
+  font-size: 12px; font-weight: 600; cursor: pointer; transition: background 0.15s, color 0.15s; white-space: nowrap;
+}
+.floors button:hover { color: var(--text); background: var(--chip-hover); }
+.floors button[aria-pressed="true"] { background: var(--warm); color: #1d1503; }
+
 .rooms h2 { margin: 2px 4px 8px; font-size: 11px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); }
 .room-list { display: flex; flex-direction: column; gap: 2px; }
 .room-item {
@@ -105,7 +113,7 @@ kbd {
 .ri-tileMarble { background: #e9e0cf; } .ri-tileWarm { background: #d4be9f; } .ri-wood { background: #a8784a; }
 .ri-woodLight { background: #cfae82; } .ri-tileKitchen { background: #8f8b86; } .ri-tileBath { background: #93a7b5; }
 .ri-marble { background: #f4f2ee; } .ri-grass { background: #5d8a3a; } .ri-graniteGrey { background: #77736f; }
-.ri-concrete { background: #a8a59e; } .ri-pavers { background: #8e8c86; }
+.ri-concrete { background: #a8a59e; } .ri-pavers { background: #8e8c86; } .ri-terrace { background: #b0664a; }
 
 .more { display: flex; flex-direction: column; gap: 12px; }
 .ctl label { display: flex; justify-content: space-between; align-items: baseline; margin: 0 4px 6px; font-size: 12px; font-weight: 600; color: var(--muted); }
@@ -150,6 +158,8 @@ body[data-view="plan"] .rl-size { display: none; }
 .mm-room.active rect { fill: rgba(74, 168, 255, 0.55); }
 .mm-grass rect { fill: rgba(110, 170, 80, 0.35); }
 .mm-wall { fill: #d9dee5; pointer-events: none; }
+.mm-void { fill: rgba(0, 0, 0, 0.38); stroke: rgba(255, 255, 255, 0.3); stroke-width: 0.18; stroke-dasharray: 0.7 0.5; pointer-events: none; }
+.mm-rail { fill: #8fc4ff; pointer-events: none; }
 .mm-label { fill: var(--muted); font-size: 1.9px; font-weight: 600; text-anchor: middle; pointer-events: none; }
 .mm-cone { fill: rgba(242, 184, 75, 0.35); stroke: none; }
 .mm-dot { fill: var(--warm); stroke: #1b1f25; stroke-width: 0.35; }
@@ -192,6 +202,7 @@ body[data-view="plan"] .rl-size { display: none; }
   display: flex; align-items: center; gap: 12px; padding: 6px 6px 6px 14px; border-radius: 999px; pointer-events: auto;
 }
 #walk-room { font-weight: 700; }
+.walk-floor { font-size: 11px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; color: var(--warm); white-space: nowrap; }
 #walk-exit { border: 0; border-radius: 999px; padding: 6px 12px; background: var(--accent); color: var(--accent-ink); font-weight: 700; cursor: pointer; }
 .walk-hint {
   position: absolute; bottom: 16px; left: 50%; transform: translateX(-50%); margin: 0;
@@ -260,8 +271,10 @@ body[data-view="walk"] .ctl-cut, body[data-view="walk"] .angles { display: none;
   .rl-size { display: none; }
   .walk-top { top: 58px; left: 12px; transform: none; gap: 8px; padding: 5px 5px 5px 12px; max-width: calc(100vw - 140px); }
   #walk-room { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-size: 13px; }
+  .walk-floor { display: none; }
+  .floors button { padding: 5px 2px; font-size: 11.5px; }
   #walk-exit { white-space: nowrap; padding: 6px 10px; font-size: 13px; }
-  #joystick { left: 20px; bottom: calc(104px + env(safe-area-inset-bottom)); width: 112px; height: 112px; }
+  #joystick { left: 20px; bottom: calc(150px + env(safe-area-inset-bottom)); width: 112px; height: 112px; }
   #panel.expanded ~ #walk-hud #joystick { display: none; }
   body[data-view="walk"] #panel { max-height: 50vh; }
   body[data-view="plan"] #minimap { display: none; }

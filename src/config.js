@@ -15,6 +15,8 @@ export const LV = {
   gf: 2.0,          // ground-floor finished floor level (2' plinth)
   gfCeil: 13.0,     // 11' clear height
   ff: 13.5,         // first-floor level (6" slab)
+  ffFloor: 13.54,   // finished floor of the first-floor rooms (tiles / boards on the slab)
+  terrace: 13.55,   // front terrace tiles
   ffCeil: 24.0,
   roof: 24.5,
   parapet: 27.5,
@@ -100,6 +102,16 @@ export const STAIR = {
 };
 STAIR.tread = (STAIR.landingX - STAIR.firstRiser) / 9;
 STAIR.rise = (LV.ff - LV.gf) / STAIR.risers;
+// the same dog-leg carries on from the first floor up to the roof, inside the stair
+// tower and the mumty, directly above the lower flights
+STAIR.rise2 = (LV.roof - LV.ff) / STAIR.risers;
+/** Plan outline of the stair well (open in the first-floor slab and in the roof slab). */
+export const stairWell = () => [[STAIR.firstRiser, STAIR.z0], [STAIR.x1, STAIR.z0], [STAIR.x1, STAIR.z1], [STAIR.firstRiser, STAIR.z1]];
+
+/** Which floor a height (feet level or a point) is on: 'gf' | 'ff' | 'roof'. */
+export const floorOf = (y) => (y < LV.ff - 0.6 ? 'gf' : y < LV.roof - 0.6 ? 'ff' : 'roof');
+/** Finished floor height of each floor (where people stand). */
+export const FLOOR_Y = { gf: LV.gf, ff: LV.ffFloor, roof: LV.roof };
 
 export const HOUSE_CENTER = { x: 17.7, z: -24 };
 
