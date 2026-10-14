@@ -1,5 +1,6 @@
-import { ROOMS, WALLS, roomArea, roomAnchor } from '../plan.js';
-import { LV } from '../config.js';
+import { ALL_ROOMS, WALLS, FLOORS, roomArea, roomAnchor } from '../plan.js';
+import { FF_MAP, ROOF_MAP } from '../plan-ff.js';
+import { LV, PLOT, rearZ } from '../config.js';
 import { attachJoystick } from './walk.js';
 
 const FINISH = {
@@ -11,16 +12,19 @@ const FINISH = {
   tileBath: 'Anti-skid ceramic tiles, 1′×1′',
   marble: 'White marble',
   grass: 'Lawn',
-  graniteGrey: 'Grey granite treads',
+  graniteGrey: 'Grey granite',
   concrete: 'Concrete',
   pavers: 'Stone pavers',
+  terrace: 'Terracotta terrace tiles, 1′×1′',
 };
 
 const $ = (s, el = document) => el.querySelector(s);
+const floorName = (id) => FLOORS.find((f) => f.id === id)?.name || '';
 
 export function initUI(app) {
   const panel = $('#panel');
   const segButtons = [...document.querySelectorAll('.seg [data-view]')];
+  const floorButtons = [...document.querySelectorAll('[data-floor]')];
   const roomList = $('#room-list');
   const cut = $('#cut');
   const cutVal = $('#cut-val');
@@ -39,22 +43,40 @@ export function initUI(app) {
     cut.disabled = v === 'walk';
   });
 
-  // ---- rooms ---------------------------------------------------------------
-  for (const room of ROOMS) {
-    const b = document.createElement('button');
-    b.type = 'button';
-    b.className = 'room-item';
-    b.dataset.room = room.id;
-    b.innerHTML = `<span class="ri-dot ri-${room.floor}"></span><span class="ri-name">${room.name}</span><span class="ri-size">${room.size.split(' +')[0]}</span>`;
-    b.addEventListener('click', () => app.focusRoom(room.id));
-    roomList.appendChild(b);
+  // ---- floors -------------------------------------------------------------------
+  for (const b of floorButtons) b.addEventListener('click', () => app.setFloor(b.dataset.floor));
+  const showFloor = (id) => {
+    for (const b of floorButtons) b.setAttribute('aria-pressed', String(b.dataset.floor === id));
+    document.body.dataset.floor = id;
+    $('#walk-floor').textContent = floorName(id);
+    fillRooms(id);
+  };
+
+  // ---- rooms (those on the floor on show) -------------------------------------------
+  function fillRooms(floor) {
+    roomList.replaceChildren();
+    for (const room of ALL_ROOMS) {
+      if (room.floorId !== floor) continue;
+      const b = document.createElement('button');
+      b.type = 'button';
+      b.className = 'room-item';
+      b.dataset.room = room.id;
+      b.setAttribute('aria-current', String(app.selected === room.id));
+      b.innerHTML = `<span class="ri-dot ri-${room.floor}"></span><span class="ri-name">${room.name}</span><span class="ri-size">${room.size.split(' +')[0]}</span>`;
+      b.addEventListener('click', () => app.focusRoom(room.id));
+      roomList.appendChild(b);
+    }
   }
+  app.addEventListener('floor', (e) => showFloor(e.detail));
+  showFloor(app.floor);
+
   app.addEventListener('select', (e) => {
     const room = e.detail;
-    for (const b of roomList.children) b.setAttribute('aria-current', String(room && b.dataset.room === room.id));
+    for (const b of roomList.children) b.setAttribute('aria-current', String(!!room && b.dataset.room === room.id));
     if (!room) { info.hidden = true; return; }
     if (app.view === 'walk') $('#walk-room').textContent = room.name;
     $('#ic-name').textContent = room.name;
+    $('#ic-level').textContent = floorName(room.floorId);
     $('#ic-size').textContent = room.size;
     $('#ic-area').textContent = `${Math.round(roomArea(room))} sq ft`;
     $('#ic-floor').textContent = FINISH[room.floor] || '';
@@ -75,9 +97,10 @@ export function initUI(app) {
   };
   const showCut = (y) => {
     if (!Number.isFinite(y)) { cutVal.textContent = 'Full house'; cut.value = String(CUT_MAX); return; }
-    const rel = y - LV.gf;
-    cut.value = String(Math.min(CUT_MAX - 0.5, rel));
-    cutVal.textContent = rel > LV.gfCeil - LV.gf + 0.4 ? `${fmtFt(rel)} (upper floor)` : `${fmtFt(rel)} above floor`;
+    cut.value = String(Math.min(CUT_MAX - 0.5, y - LV.gf));
+    if (y < LV.ff) cutVal.textContent = `${fmtFt(Math.max(0, y - LV.gf))} above ground floor`;
+    else if (y < LV.roof) cutVal.textContent = `${fmtFt(Math.max(0, y - LV.ffFloor))} above first floor`;
+    else cutVal.textContent = `${fmtFt(y - LV.roof)} above the roof`;
   };
   cut.addEventListener('input', () => {
     const v = Number(cut.value);
@@ -117,7 +140,7 @@ export function initUI(app) {
   $('#shot-btn').addEventListener('click', () => {
     const a = document.createElement('a');
     a.href = app.screenshot();
-    a.download = `surbhi-bhawan-${app.view}${app.selected ? '-' + app.selected : ''}.png`;
+    a.download = `surbhi-bhawan-${app.view}-${app.floor}${app.selected ? '-' + app.selected : ''}.png`;
     document.body.appendChild(a);
     a.click();
     a.remove();
@@ -133,10 +156,13 @@ export function initUI(app) {
     if (e.target instanceof HTMLInputElement || e.metaKey || e.ctrlKey) return;
     const k = e.key.toLowerCase();
     if (app.view === 'walk' && ['w', 'a', 's', 'd', 'q', 'e'].includes(k)) return;
+    const fi = FLOORS.findIndex((f) => f.id === app.floor);
     if (k === '1') app.setView('exterior');
     else if (k === '2') app.setView('dollhouse');
     else if (k === '3') app.setView('plan');
     else if (k === '4') app.setView('walk');
+    else if (k === 'pageup' && fi < FLOORS.length - 1) { e.preventDefault(); app.setFloor(FLOORS[fi + 1].id); }
+    else if (k === 'pagedown' && fi > 0) { e.preventDefault(); app.setFloor(FLOORS[fi - 1].id); }
     else if (k === 'l') { const t = $('#t-labels'); t.checked = !t.checked; app.setLabels(t.checked); }
     else if (k === 'f') { const t = $('#t-furniture'); t.checked = !t.checked; app.setFurniture(t.checked); }
     else if (k === 'r') { const t = $('#t-rotate'); t.checked = !t.checked; app.setAutoRotate(t.checked); }
@@ -151,7 +177,8 @@ export function initUI(app) {
 }
 
 // ---------------------------------------------------------------------------
-// Minimap: the floor plan as SVG, with the camera marker. Click a room to go there.
+// Minimap: the plan of the floor on show as SVG, with the camera marker.
+// Click a room to go there.
 // ---------------------------------------------------------------------------
 function buildMinimap(app) {
   const host = $('#minimap');
@@ -166,27 +193,44 @@ function buildMinimap(app) {
     parent.appendChild(e);
     return e;
   };
+  const pts = (poly) => poly.map(([x, z]) => `${x.toFixed(3)},${z.toFixed(3)}`).join(' ');
+  const rect = ([x0, x1, z0, z1], cls, parent) => el('rect', { x: x0, y: z0, width: x1 - x0, height: z1 - z0, class: cls }, parent);
   // plot outline
-  el('polygon', { points: '0,-48.748 35.417,-47.164 35.417,1 0,1', class: 'mm-plot' });
-  const roomEls = {};
-  for (const room of ROOMS) {
-    const g = el('g', { class: `mm-room mm-${room.floor}`, 'data-room': room.id, tabindex: '-1' });
-    for (const [x0, x1, z0, z1] of room.rects) el('rect', { x: x0, y: z0, width: x1 - x0, height: z1 - z0 }, g);
-    const title = el('title', {}, g);
-    title.textContent = room.name;
-    g.addEventListener('click', () => app.focusRoom(room.id));
-    roomEls[room.id] = g;
+  const W = PLOT.width;
+  el('polygon', { points: pts([[0, PLOT.rearLeft], [W, PLOT.rearRight], [W, PLOT.plotFront], [0, PLOT.plotFront]]), class: 'mm-plot' });
+
+  const LAYERS = {
+    gf: { walls: WALLS.map((w) => [w.x[0], w.x[1], w.z[0], w.z[1]]), polys: [[[0, rearZ(0)], [W, rearZ(W)], [W, rearZ(W) + 0.79], [0, rearZ(0) + 0.79]]], voids: [], rails: [] },
+    ff: FF_MAP,
+    roof: ROOF_MAP,
+  };
+  const layers = {}, roomEls = {};
+  for (const f of FLOORS) {
+    const layer = el('g', { class: 'mm-layer', 'data-floor': f.id });
+    const d = LAYERS[f.id];
+    const rooms = ALL_ROOMS.filter((r) => r.floorId === f.id);
+    for (const room of rooms) {
+      const g = el('g', { class: `mm-room mm-${room.floor}`, 'data-room': room.id, tabindex: '-1' }, layer);
+      for (const r of room.rects) rect(r, '', g);
+      el('title', {}, g).textContent = room.name;
+      g.addEventListener('click', () => app.focusRoom(room.id));
+      roomEls[room.id] = g;
+    }
+    for (const v of d.voids) el('polygon', { points: pts(v), class: 'mm-void' }, layer);
+    for (const w of d.walls) rect(w, 'mm-wall', layer);
+    for (const p of d.polys) el('polygon', { points: pts(p), class: 'mm-wall' }, layer);
+    for (const r of d.rails) rect(r, 'mm-rail', layer);
+    for (const room of rooms) {
+      if (room.id === 'duct') continue;
+      const a = roomAnchor(room);
+      el('text', { x: a.x, y: a.z + 0.6, class: 'mm-label' }, layer).textContent = shortName(room);
+    }
+    layers[f.id] = layer;
   }
-  for (const w of WALLS) {
-    el('rect', { x: w.x[0], y: w.z[0], width: w.x[1] - w.x[0], height: w.z[1] - w.z[0], class: 'mm-wall' });
-  }
-  el('polygon', { points: '0,-48.748 35.417,-47.164 35.417,-46.37 0,-47.96', class: 'mm-wall' });
-  for (const room of ROOMS) {
-    if (room.id === 'duct') continue;
-    const a = roomAnchor(room);
-    const t = el('text', { x: a.x, y: a.z + 0.6, class: 'mm-label' });
-    t.textContent = shortName(room);
-  }
+  const show = (id) => { for (const [k, g] of Object.entries(layers)) g.style.display = k === id ? '' : 'none'; };
+  show(app.floor);
+  app.addEventListener('floor', (e) => show(e.detail));
+
   const marker = el('g', { class: 'mm-marker' });
   el('path', { d: 'M0 0 L-3.2 -7 A7.6 7.6 0 0 1 3.2 -7 Z', class: 'mm-cone' }, marker);
   el('circle', { cx: 0, cy: 0, r: 1.1, class: 'mm-dot' }, marker);
@@ -216,5 +260,7 @@ function shortName(room) {
   return {
     portico: 'Portico', lobby: 'Lobby', living: 'Living', hall: 'Dining', bed1: 'Bed 1', bed2: 'Bed 2',
     guest: 'Guest', kitchen: 'Kitchen', toilet1: 'WC', toilet2: 'WC', puja: 'Puja', stair: 'Stair',
+    ffLiving: 'Living', ffDining: 'Dining', ffKitchen: 'Kitchen', ffBed3: 'Bed 3', ffBath3: 'Bath', ffBed4: 'Bed 4',
+    ffBath4: 'Bath', ffWC: 'WC', ffStair: 'Stair', ffTerrace: 'Terrace', roof: 'Roof terrace', mumty: 'Mumty',
   }[room.id] || room.name;
 }

@@ -7,12 +7,13 @@ import { MaterialLibrary } from '../materials.js';
 import { mergeInPlace } from '../geometry.js';
 import { buildStructure } from '../build/structure.js';
 import { buildOpenings } from '../build/openings.js';
+import { buildFirstFloor } from '../build/firstfloor.js';
 import { buildExterior } from '../build/exterior.js';
 import { buildFurniture } from '../build/furniture.js';
 import { WalkController } from './walk.js';
 import { Tweens } from './tween.js';
-import { ROOMS, roomAnchor, roomBounds, findRoomAt } from '../plan.js';
-import { LV, HOUSE_CENTER } from '../config.js';
+import { ALL_ROOMS, FLOORS, roomById, roomAnchor, roomBounds, findRoomAt } from '../plan.js';
+import { LV, HOUSE_CENTER, FLOOR_Y, floorOf } from '../config.js';
 
 // Where to stand when "walking into" each room: [x, z, lookAtX, lookAtZ, pitch]
 export const WALK_SPOTS = {
@@ -28,13 +29,34 @@ export const WALK_SPOTS = {
   toilet2: [30.5, -22.0, 34, -24.4, -0.5],
   puja: [10.2, -44.9, 3.3, -46.0, -0.05],
   stair: [17.6, -6.9, 30, -6.9, 0.05],
+  // first floor
+  ffLiving: [10.2, -20.4, 2.5, -27.5, -0.1],
+  ffDining: [20.6, -19.6, 15.0, -30.0, -0.06],
+  ffKitchen: [24.2, -11.4, 28.0, -19.0, -0.16],
+  ffBed3: [9.4, -33.6, 4.0, -44.5, -0.1],
+  ffBath3: [7.6, -33.4, 2.5, -34.4, -0.38],
+  ffBed4: [24.2, -29.2, 32.0, -34.5, -0.1],
+  ffBath4: [31.3, -28.0, 31.4, -22.2, -0.4],
+  ffWC: [20.6, -23.8, 27.0, -24.0, -0.38],
+  ffStair: [21.3, -3.0, 30.0, -6.6, 0.18],
+  ffTerrace: [15.2, -15.2, 4.0, -3.0, -0.05],
+  // roof
+  roof: [24.6, -13.0, 6.0, -40.0, -0.1],
+  mumty: [20.6, -5.2, 28.0, -6.6, -0.22],
 };
+const DEFAULT_ROOM = { gf: 'lobby', ff: 'ffDining', roof: 'roof' };
 
 // dir: camera direction from the target; rh / rv: half width / height (ft) that must fit on screen
 const VIEWS = {
   exterior: { dir: [-0.6, 0.27, 0.75], target: [17.7, 14.5, -18], rh: 36, rv: 29, cut: Infinity, labels: false },
   dollhouse: { dir: [-0.42, 0.78, 0.47], target: [17.7, 1, -24.5], rh: 28, rv: 28, cut: 9.6, labels: true },
   plan: { dir: [0, 1, 0.0008], target: [17.7, 2, -24.1], rh: 20.5, rv: 27.5, cut: 6.4, labels: true },
+};
+// dollhouse / plan views of each floor: [target height, section-cut height]
+const FLOOR_VIEWS = {
+  gf: { dollhouse: [1, 9.6], plan: [2, 6.4] },
+  ff: { dollhouse: [FLOOR_Y.ff - 1, FLOOR_Y.ff + 7.6], plan: [FLOOR_Y.ff, FLOOR_Y.ff + 4.4] },
+  roof: { dollhouse: [FLOOR_Y.roof - 1, Infinity], plan: [FLOOR_Y.roof, Infinity] },
 };
 
 export class App extends EventTarget {
@@ -43,6 +65,7 @@ export class App extends EventTarget {
     this.container = container;
     this.mobile = matchMedia('(pointer: coarse)').matches || window.innerWidth < 760;
     this.view = 'exterior';
+    this.floor = 'gf';
     this.selected = null;
     this.cut = Infinity;
     this.labelsOn = true;
@@ -175,6 +198,7 @@ export class App extends EventTarget {
     console.info(`[home3d] textures ${Math.round(performance.now() - tm)} ms`);
     await step('Building walls & floors', () => buildStructure(ctx));
     await step('Fitting doors & windows', () => buildOpenings(ctx));
+    await step('Building the first floor', () => buildFirstFloor(ctx));
     await step('Adding facade, roof & street', () => buildExterior(ctx));
     await step('Placing furniture', () => { this.furniture = buildFurniture(ctx); });
     await step('Optimising', () => {
@@ -208,7 +232,7 @@ export class App extends EventTarget {
 
   _labels() {
     this.labels = [];
-    for (const room of ROOMS) {
+    for (const room of ALL_ROOMS) {
       if (room.id === 'duct') continue; // too small to label; still in the list & minimap
       const a = roomAnchor(room);
       const div = document.createElement('button');
@@ -220,6 +244,8 @@ export class App extends EventTarget {
       const obj = new CSS2DObject(div);
       obj.position.set(a.x, LV[room.level] + 1.5, a.z);
       obj.userData.room = room.id;
+      obj.userData.floor = room.floorId;
+      obj.visible = false;
       this.scene.add(obj);
       this.labels.push(obj);
     }
@@ -265,9 +291,17 @@ export class App extends EventTarget {
     const ndc = new THREE.Vector2(((cx - rect.left) / rect.width) * 2 - 1, -((cy - rect.top) / rect.height) * 2 + 1);
     const rc = new THREE.Raycaster();
     rc.setFromCamera(ndc, this.camera);
+    // in the dollhouse / plan views only the floor on show can be picked (not, say, the
+    // ground floor seen through the double-height space from the first floor)
+    const anyFloor = this.view === 'exterior';
     if (fast) {
-      const h = rc.intersectObjects(this.pickables, false)[0];
-      return h ? ROOMS.find((r) => r.id === h.object.userData.room) || null : null;
+      for (const h of rc.intersectObjects(this.pickables, false)) {
+        if (h.point.y > this.cut + 0.01) continue; // clipped away
+        const f = floorOf(h.point.y + 0.05);
+        if (!anyFloor && f !== this.floor) continue;
+        return findRoomAt(h.point.x, h.point.z, f);
+      }
+      return null;
     }
     const hits = rc.intersectObject(this.house, true);
     for (const h of hits) {
@@ -276,7 +310,9 @@ export class App extends EventTarget {
       let o = h.object, hidden = false;
       while (o) { if (o.visible === false) hidden = true; o = o.parent; }
       if (hidden) continue;
-      return findRoomAt(h.point.x, h.point.z);
+      const f = floorOf(h.point.y + 0.05);
+      if (!anyFloor && f !== this.floor) return null;
+      return findRoomAt(h.point.x, h.point.z, f);
     }
     return null;
   }
@@ -308,7 +344,14 @@ export class App extends EventTarget {
     let active = this.tweens.update(performance.now() / 1000);
     if (this.view === 'walk') {
       active = this.walk.update(dt) || active;
-      this.roomLight.position.set(this.camera.position.x, Math.min(this.camera.position.y + 1.2, LV.gfCeil - 0.6), this.camera.position.z);
+      // follow the visitor up and down the stairs
+      const f = floorOf(this.walk.feet + 0.3);
+      if (f !== this.floor && this.walk.enabled) {
+        this.floor = f;
+        this.dispatchEvent(new CustomEvent('floor', { detail: f }));
+      }
+      const ceil = f === 'gf' ? LV.gfCeil : f === 'ff' ? LV.ffCeil : LV.mumtyCeil;
+      this.roomLight.position.set(this.camera.position.x, Math.min(this.camera.position.y + 1.2, ceil - 0.6), this.camera.position.z);
     } else if (this.controls.enabled) {
       active = this.controls.update(dt) || active;
     }
@@ -375,8 +418,30 @@ export class App extends EventTarget {
 
   _syncLabels() {
     const show = this.labelsOn && VIEWS[this.view]?.labels !== false && this.view !== 'walk' && this.view !== 'exterior';
-    for (const l of this.labels) l.visible = show;
+    for (const l of this.labels) l.visible = show && l.userData.floor === this.floor;
     this.invalidate();
+  }
+
+  /** View settings for the current floor. */
+  _viewSpec(view) {
+    const v = VIEWS[view];
+    const fv = FLOOR_VIEWS[this.floor]?.[view];
+    if (!fv) return v;
+    return { ...v, target: [v.target[0], fv[0], v.target[2]], cut: fv[1] };
+  }
+
+  /** Show another floor: 'gf' | 'ff' | 'roof'. In walk mode this walks you to it. */
+  setFloor(id, { fly = true } = {}) {
+    if (!FLOORS.some((f) => f.id === id)) return;
+    if (id !== this.floor) {
+      this.floor = id;
+      this.dispatchEvent(new CustomEvent('floor', { detail: id }));
+      if (this.selected && roomById(this.selected)?.floorId !== id) this.clearSelection();
+    }
+    this._syncLabels();
+    if (!fly) return;
+    if (this.view === 'walk') this.enterWalk(DEFAULT_ROOM[id]);
+    else this.setView(this.view === 'exterior' ? 'dollhouse' : this.view);
   }
 
   setFurniture(on) {
@@ -393,9 +458,9 @@ export class App extends EventTarget {
   }
 
   setView(view, { instant = false, keepCut = false } = {}) {
-    if (view === 'walk') return this.enterWalk(this.selected || 'lobby');
+    if (view === 'walk') return this.enterWalk(this.selected || DEFAULT_ROOM[this.floor]);
     if (this.view === 'walk') this._exitWalk();
-    const v = VIEWS[view];
+    const v = this._viewSpec(view);
     this.view = view;
     const dir = new THREE.Vector3(...v.dir).normalize();
     const d = this._fitDistance(v.rh, v.rv);
@@ -409,15 +474,22 @@ export class App extends EventTarget {
   }
 
   focusRoom(id, { fly = true } = {}) {
-    const room = ROOMS.find((r) => r.id === id);
+    const room = roomById(id);
     if (!room) return;
-    this.select(id);
     if (this.view === 'walk') {
       return this.enterWalk(id);
     }
+    if (room.floorId !== this.floor) {
+      // a room on another floor: show that floor, sliced at its own height
+      this.floor = room.floorId;
+      this.dispatchEvent(new CustomEvent('floor', { detail: room.floorId }));
+      if (this.view !== 'exterior') this.setCut(this._viewSpec(this.view).cut);
+      this._syncLabels();
+    }
+    this.select(id);
     if (this.view === 'exterior') {
       this.view = 'dollhouse';
-      this.setCut(VIEWS.dollhouse.cut);
+      this.setCut(this._viewSpec('dollhouse').cut);
       this._syncLabels();
       this.dispatchEvent(new CustomEvent('view', { detail: 'dollhouse' }));
     }
@@ -460,7 +532,7 @@ export class App extends EventTarget {
       t = this.controls.target.clone();
       d = this.camera.position.distanceTo(t);
     } else {
-      t = new THREE.Vector3(HOUSE_CENTER.x, ext ? 13 : 2, HOUSE_CENTER.z);
+      t = new THREE.Vector3(HOUSE_CENTER.x, ext ? 13 : FLOOR_Y[this.floor], HOUSE_CENTER.z);
       const rh = name === 'top' ? 21 : side ? 27 : 20;
       const rv = name === 'top' ? 27.5 : ext ? 19 : 18;
       // add half the house depth along the view so the near facade also fits
@@ -473,7 +545,7 @@ export class App extends EventTarget {
 
   select(id) {
     this.selected = id;
-    const room = ROOMS.find((r) => r.id === id);
+    const room = roomById(id);
     if (!room) {
       this._highlight.visible = false;
       this.dispatchEvent(new CustomEvent('select', { detail: null }));
@@ -517,8 +589,10 @@ export class App extends EventTarget {
     this.invalidate();
   }
 
-  enterWalk(id = 'lobby') {
-    const spot = WALK_SPOTS[id] || WALK_SPOTS.lobby;
+  enterWalk(id = DEFAULT_ROOM[this.floor]) {
+    const room = roomById(id) || roomById(DEFAULT_ROOM[this.floor]);
+    id = room.id;
+    const spot = WALK_SPOTS[id] || WALK_SPOTS[DEFAULT_ROOM[room.floorId]];
     const prev = this.view;
     this.view = 'walk';
     this.controls.enabled = false;
@@ -540,7 +614,11 @@ export class App extends EventTarget {
     // fly down smoothly from the current camera, then hand over to the walk controller
     const startPos = this.camera.position.clone();
     const startQ = this.camera.quaternion.clone();
-    this.walk.enter(spot[0], spot[1], yaw, pitch);
+    this.walk.enter(spot[0], spot[1], yaw, pitch, FLOOR_Y[room.floorId]);
+    if (room.floorId !== this.floor) {
+      this.floor = room.floorId;
+      this.dispatchEvent(new CustomEvent('floor', { detail: room.floorId }));
+    }
     const endPos = this.camera.position.clone();
     const endQ = this.camera.quaternion.clone();
     this.walk.enabled = false;
@@ -560,7 +638,7 @@ export class App extends EventTarget {
     }
     this.selected = id;
     this.dispatchEvent(new CustomEvent('view', { detail: 'walk' }));
-    this.dispatchEvent(new CustomEvent('select', { detail: ROOMS.find((r) => r.id === id) }));
+    this.dispatchEvent(new CustomEvent('select', { detail: room }));
   }
 
   _setFov(f) {
@@ -596,8 +674,9 @@ export class App extends EventTarget {
   }
 
   currentRoom() {
-    const p = this.view === 'walk' ? this.camera.position : this.controls.target;
-    return findRoomAt(p.x, p.z);
+    const walk = this.view === 'walk';
+    const p = walk ? this.camera.position : this.controls.target;
+    return findRoomAt(p.x, p.z, walk ? floorOf(this.walk.feet + 0.3) : this.floor);
   }
 
   screenshot() {

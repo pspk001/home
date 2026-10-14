@@ -79,12 +79,14 @@ export class WalkController {
     window.addEventListener('blur', () => this.keys.clear());
   }
 
-  /** Enter at a position (feet-level y is found automatically). */
-  enter(x, z, yaw, pitch = -0.06) {
+  /** Enter at a position on the floor at about floorY (the exact feet level is found from the walkable surfaces). */
+  enter(x, z, yaw, pitch = -0.06, floorY = 2) {
     this.enabled = true;
+    this.feet = floorY;
     const free = this._findFree(x, z, 3);
     this.pos.set(free[0], free[1]);
-    this.feet = this._floorAt(free[0], free[1], 30) ?? 2;
+    this.feet = floorY;
+    this.feet = this._floorAt(free[0], free[1], 2) ?? floorY;
     this.yaw = yaw;
     this.pitch = pitch;
     this.target = null;
@@ -168,17 +170,20 @@ export class WalkController {
     return [px, pz];
   }
 
+  /** Nearest spot to (x, z) where the body fits, on the floor at the current feet level. */
   _findFree(x, z, maxR) {
-    const feet = this._floorAt(x, z, 30) ?? 2;
-    if (!this._blocked(x, z, feet)) return [x, z];
-    for (let r = 0.5; r <= maxR; r += 0.5) {
+    const base = this.feet;
+    const floorAt = (px, pz) => { this.feet = base; return this._floorAt(px, pz, 2) ?? base; };
+    let found = null;
+    if (!this._blocked(x, z, floorAt(x, z))) found = [x, z];
+    for (let r = 0.5; !found && r <= maxR; r += 0.5) {
       for (let a = 0; a < Math.PI * 2; a += Math.PI / 8) {
         const px = x + Math.cos(a) * r, pz = z + Math.sin(a) * r;
-        const f = this._floorAt(px, pz, 30) ?? feet;
-        if (!this._blocked(px, pz, f)) return [px, pz];
+        if (!this._blocked(px, pz, floorAt(px, pz))) { found = [px, pz]; break; }
       }
     }
-    return [x, z];
+    this.feet = base;
+    return found || [x, z];
   }
 
   update(dt) {
