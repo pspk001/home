@@ -135,12 +135,15 @@ export class WalkController {
     return null;
   }
 
+  // (a collider may carry its own body radius `r`: the spiral stair's steps are narrower
+  // than a body, so there the body is taken as slimmer)
   _blocked(px, pz, feet) {
     for (const c of this.colliders) {
       if (c.y1 <= feet + STEP || c.y0 >= feet + EYE + 0.6) continue;
+      const R = c.r || RADIUS;
       const qx = Math.max(c.x0, Math.min(px, c.x1)), qz = Math.max(c.z0, Math.min(pz, c.z1));
       const dx = px - qx, dz = pz - qz;
-      if (dx * dx + dz * dz < RADIUS * RADIUS * 0.98) return true;
+      if (dx * dx + dz * dz < R * R * 0.98) return true;
     }
     return false;
   }
@@ -150,19 +153,20 @@ export class WalkController {
       let any = false;
       for (const c of this.colliders) {
         if (c.y1 <= feet + STEP || c.y0 >= feet + EYE + 0.6) continue;
+        const R = c.r || RADIUS;
         const qx = Math.max(c.x0, Math.min(px, c.x1)), qz = Math.max(c.z0, Math.min(pz, c.z1));
         const dx = px - qx, dz = pz - qz;
         const d2 = dx * dx + dz * dz;
-        if (d2 >= RADIUS * RADIUS) continue;
+        if (d2 >= R * R) continue;
         any = true;
         if (d2 > 1e-8) {
           const d = Math.sqrt(d2);
-          px = qx + (dx / d) * RADIUS;
-          pz = qz + (dz / d) * RADIUS;
+          px = qx + (dx / d) * R;
+          pz = qz + (dz / d) * R;
         } else {
           const l = px - c.x0, r = c.x1 - px, b = pz - c.z0, t = c.z1 - pz;
           const m = Math.min(l, r, b, t);
-          if (m === l) px = c.x0 - RADIUS; else if (m === r) px = c.x1 + RADIUS; else if (m === b) pz = c.z0 - RADIUS; else pz = c.z1 + RADIUS;
+          if (m === l) px = c.x0 - R; else if (m === r) px = c.x1 + R; else if (m === b) pz = c.z0 - R; else pz = c.z1 + R;
         }
       }
       if (!any) break;
