@@ -1,7 +1,8 @@
 import * as THREE from 'three';
-import { Batcher, extrudeXZ, regroup } from '../geometry.js';
-import { LV, OPENING, PLOT, rearZ, REAR_T, STAIR, VOID, BAY, REAR_COLS, REAR_COL_D, voidOutline, ductOutline, inDuct } from '../config.js';
+import { Batcher, extrudeXZ, regroup, groupOnly } from '../geometry.js';
+import { LV, OPENING, PLOT, rearZ, REAR_T, STAIR, VOID, BAY, REAR_COLS, REAR_COL_D, SPIRAL, spiralArc, ffVoidOutline, ductOutline, inDuct } from '../config.js';
 import { WALLS, ROOMS } from '../plan.js';
+import { buildSpiralStair } from './spiral.js';
 
 const EXTERIOR = new Set(['ext', 'extTan', 'pPortico', 'siding']);
 const TOP = LV.gfCeil;
@@ -145,9 +146,10 @@ export function buildStructure(ctx) {
   rearWall(22.174, PLOT.width, REAR_T, 0, VOID.glassSill, 'pKitchen', [null, 'ext'], 'graniteBlack');
 
   // exposed-concrete downstand beams along the edges of the first-floor slab round the
-  // double-height space: on grid F (columns F2 to F5) across the hall, and on grid 2
-  // between the old garden bay and the dining area (rear-wall column to D2)
-  B.box(VOID.x0, VOID.hallX1, TOP - 1.0, TOP, VOID.hallFront, VOID.hallFront + 0.792, { all: 'concreteCeil', nx: null, px: null, py: null });
+  // double-height space: on grid F (columns F2 to F5) across the hall, curving round the
+  // spiral stair's well as a ring beam, and on grid 2 between the old garden bay and the
+  // dining area (rear-wall column to D2)
+  house.add(gridFBeam(ctx.mats));
   B.box(REAR_COLS[0][0], VOID.x0, TOP - 1.0, TOP, rearZ(VOID.x0) + REAR_COL_D, BAY.zFront, { all: 'concreteCeil', nz: null, pz: null, py: null });
 
   // ---- bathroom wall tiles & kitchen dado ------------------------------------
@@ -179,9 +181,9 @@ export function buildStructure(ctx) {
   //  pipe line shaft, which rises to the sky)
   const outline = [[0, 0], [PLOT.width, 0], [PLOT.width, rearZ(PLOT.width)], [0, rearZ(0)]];
   const stairHole = [[STAIR.firstRiser, -8.843], [STAIR.x1, -8.843], [STAIR.x1, -0.792], [STAIR.firstRiser, -0.792]];
-  // the slab edge round the double-height space is left as exposed concrete;
-  // inside the shaft it is plastered like the shaft walls
-  const vo = voidOutline();
+  // the slab edge round the double-height space (and the spiral stair's well) is left as
+  // exposed concrete; inside the shaft it is plastered like the shaft walls
+  const vo = ffVoidOutline();
   const onVoidEdge = (c) => vo.some((p, i) => {
     const q = vo[(i + 1) % vo.length];
     const dx = q[0] - p[0], dz = q[1] - p[1];
@@ -196,8 +198,9 @@ export function buildStructure(ctx) {
   slab.userData.ceiling = true;
   house.add(slab);
 
-  // ---- staircase ------------------------------------------------------------
+  // ---- staircases: the dog-leg in the stair room, the spiral in the hall -------
   buildStair(ctx);
+  buildSpiralStair(ctx);
 
   // ---- steps from portico up to the main door --------------------------------
   const SB = new Batcher();
@@ -207,6 +210,30 @@ export function buildStructure(ctx) {
   const steps = SB.build((k) => mats.get(k), { name: 'portico-steps' });
   steps.traverse((o) => o.isMesh && walkables.push(o));
   house.add(steps);
+}
+
+// ---------------------------------------------------------------------------
+/**
+ * Exposed-concrete downstand beam on grid F (1 ft deep, as wide as the column), from
+ * column F2 to column F5. In the middle it swings forward round the spiral stair's well
+ * as a ring beam, so the stair rises clear of it.
+ */
+function gridFBeam(mats) {
+  const z0 = VOID.hallFront, z1 = VOID.hallFront + 0.792, x0 = VOID.x0, x1 = VOID.hallX1;
+  const inner = spiralArc(SPIRAL.well, z0).reverse();      // living-room side → front → bedroom side
+  const outer = spiralArc(SPIRAL.well + 0.792, z1);        // bedroom side → front → living-room side
+  const poly = [[x0, z0], ...inner, [x1, z0], [x1, z1], ...outer, [x0, z1]];
+  // keep the bottom and the sides; drop the top (inside the slab) and the two ends,
+  // which stand against the columns (coincident faces would flicker)
+  const geo = groupOnly(regroup(extrudeXZ(poly, [], TOP - 1.0, TOP), (gi, c, n) => {
+    if (gi === 0) return 1;
+    if (gi === 2 && Math.abs(n.x) > 0.9 && (Math.abs(c.x - x0) < 0.02 || Math.abs(c.x - x1) < 0.02)) return 1;
+    return 0;
+  }), 0);
+  const m = new THREE.Mesh(geo, mats.get('concreteCeil'));
+  m.name = 'grid-f-beam';
+  m.castShadow = m.receiveShadow = true;
+  return m;
 }
 
 // ---------------------------------------------------------------------------

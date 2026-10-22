@@ -548,15 +548,16 @@ export function buildFurniture(ctx) {
   // a big leafy plant in the old garden bay, beside the way to the puja room
   plant(11.3, -46.6, 1.35);
   collide(10.55, 12.05, -47.35, -45.85, 3);
-  // crockery unit on the bedroom-2 wall, where that room's old door was
-  const cu = item(21.47, -30.6, -Math.PI / 2);
-  mesh(box(5.0, 3.0, 1.4), 'furnWood', 0, 1.5, 0, cu);
-  mesh(box(4.8, 2.8, 0.02), 'laminate', 0, 1.5, 0.71, cu, { uv: false });
-  mesh(box(5.0, 2.8, 1.0), 'glass', 0, 5.2, -0.2, cu, { uv: false, shadow: false });
-  mesh(box(5.0, 0.1, 1.0), 'furnWood', 0, 3.8, -0.2, cu);
-  mesh(box(5.0, 0.1, 1.0), 'furnWood', 0, 6.6, -0.2, cu);
-  collide(20.77, 22.17, -33.1, -28.1, 7);
-  ceilingFan(17.2, -27.0); // under the first floor, clear of the edge beam on grid F
+  // crockery unit against the partition at the front of the hall, facing the spiral stair
+  // (it stood on the bedroom-2 wall, which now has to stay clear beside the stair)
+  const cu = item(15.8, -23.974, Math.PI);
+  mesh(box(3.6, 3.0, 1.4), 'furnWood', 0, 1.5, 0, cu);
+  mesh(box(3.4, 2.8, 0.02), 'laminate', 0, 1.5, 0.71, cu, { uv: false });
+  mesh(box(3.6, 2.8, 1.0), 'glass', 0, 5.2, -0.2, cu, { uv: false, shadow: false });
+  mesh(box(3.6, 0.1, 1.0), 'furnWood', 0, 3.8, -0.2, cu);
+  mesh(box(3.6, 0.1, 1.0), 'furnWood', 0, 6.6, -0.2, cu);
+  collide(14.0, 17.6, -24.674, -23.274, 7);
+  ceilingFan(16.45, -25.8); // under the first floor, between the stair's ring beam and the partition
   ceilingLight(9.4, -45.7); // the old garden bay now has a normal ceiling
   plant(13.2, -23.9, 1.2);
   wallArt(12.28, F + 5.5, -24.9, Math.PI / 2, 2.4, 3.0, 'art2');
@@ -661,8 +662,8 @@ function firstFloorFurniture() {
   curtains('x', -18.831, 2.0, 10.0, -1, 'curtainSage'); // beside the sliding door to the terrace
   wallArt(2.9, F + 5.6, -30.48, 0, 3.0, 1.9, 'art');
 
-  // ---- Dining & entrance passage ----
-  const tx = 16.8, tz = -25.2;
+  // ---- Dining & entrance passage (the table stands clear of the spiral stair's well) ----
+  const tx = 16.9, tz = -22.95;
   diningTable(item(tx, tz), 2.76, 4.75);
   collide(tx - 1.39, tx + 1.41, tz - 2.35, tz + 2.35, 2.6);
   chair(item(tx, tz - 3.2, 0));
