@@ -100,7 +100,7 @@ export const ROOMS = [
     note: '3-seater sofa, 2 armchairs, a window on the side wall and a wide window onto the portico.' },
   { id: 'hall', name: 'Drawing / Dining Hall', size: '10′-0″ × 24′-0″ + old garden bay', floor: 'tileMarble', level: 'gf', rear: true,
     rects: [[12.231, 22.174, -43.689, -26.882], [12.231, 20.678, -26.882, -23.274], [6.643, 22.174, -48.836, -43.689]],
-    note: 'One open space with the kitchen and the old garden. The dining end and the middle of the hall rise double height up to the first-floor railing on grid F, lit by a tall glass wall above door height, facing the sunrise; the old garden bay keeps a normal ceiling. A glass-globe chandelier hangs over the table; wash basin by the kitchen.' },
+    note: 'One open space with the kitchen and the old garden. The dining end and the middle of the hall rise double height up to the first-floor railing on grid F, lit by a tall glass wall above door height, facing the sunrise; the old garden bay keeps a normal ceiling. A 5′-0″ spiral stair stands in the middle of the hall on grid F, climbing from the dining side to the first-floor dining area. A glass-globe chandelier hangs over the table; wash basin by the kitchen.' },
   { id: 'bed1', name: 'Bedroom 1', size: '11′-0″ × 12′-0″', rects: [[0.792, 11.879, -42.941, -30.93]], floor: 'wood', level: 'gf',
     note: 'Queen bed, wardrobe, TV wall, 2 windows.' },
   { id: 'bed2', name: 'Bedroom 2', size: '12′-0″ × 11′-0″', rects: [[22.526, 34.581, -37.969, -26.882]], floor: 'wood', level: 'gf',

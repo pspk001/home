@@ -397,7 +397,7 @@ export function textPlate({ W = 512, H = 128, text = '', bg = '#1c1c1c', fg = '#
  * lettering. Returns { map, rm }: `rm` packs roughness (G) and metalness (B), so
  * the letters shine like metal while the stone stays glossy.
  */
-export function namePlate({ text = 'Surbhi Bhawan', W = 1536, H = 640, seed = 61 } = {}) {
+export function namePlate({ text = '', W = 1536, H = 640, seed = 61 } = {}) {
   const c = canvas(W, H), ctx = c.getContext('2d');
   const m = canvas(W, H), mx = m.getContext('2d');
   const r = rng(seed);

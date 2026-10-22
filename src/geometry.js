@@ -166,6 +166,23 @@ export function regroup(geometry, fn) {
   return out;
 }
 
+/** Copy of a grouped geometry keeping only the triangles of material group `index`. */
+export function groupOnly(geometry, index = 0) {
+  const g = geometry.index ? geometry.toNonIndexed() : geometry;
+  const groups = g.groups.filter((q) => q.materialIndex === index);
+  const out = new THREE.BufferGeometry();
+  for (const name of Object.keys(g.attributes)) {
+    const a = g.attributes[name];
+    const parts = groups.map((q) => a.array.slice(q.start * a.itemSize, (q.start + q.count) * a.itemSize));
+    const arr = new a.array.constructor(parts.reduce((s, p) => s + p.length, 0));
+    let o = 0;
+    for (const p of parts) { arr.set(p, o); o += p.length; }
+    out.setAttribute(name, new THREE.BufferAttribute(arr, a.itemSize));
+  }
+  out.computeBoundingSphere();
+  return out;
+}
+
 /**
  * Extrudes a 2D outline lying in the world XZ plane (points given as [x, z])
  * between y0 and y1. Returns a geometry with groups: 0 = top, 1 = bottom, 2 = sides.

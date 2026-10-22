@@ -60,6 +60,43 @@ export const VOID = {
   glassSill: LV.gf + 7.0, // rear wall: solid up to door height, glass above
 };
 
+// Spiral stair (design proposal): from the drawing/dining hall up to the first-floor
+// dining area. It stands in the middle of the hall, between the hall's walls, centred on
+// grid F (where the first-floor edge beam ran), so it clears every door on both floors.
+// 5′-0″ across, 18 risers, treads of 30° on plan (about 70 cm wide) on a white concrete
+// helix, with a glass balustrade and a black handrail. Plan angles are in degrees,
+// measured from +x towards +z (0 = towards bedroom 2, 90 = towards the road); going up,
+// the angle falls.
+export const SPIRAL = {
+  cx: 17.2025, cz: -30.93,  // centre of the column
+  rCol: 0.17,               // 4″ steel column
+  rStep: 2.40,              // stone steps and the white helix under them end here
+  rGlass: 2.435,            // glass balustrade on standoffs; black handrail on its top edge
+  r: 2.51,                  // overall radius, to the outside of the handrail
+  well: 2.58,               // round opening cut in the first-floor slab (ring beam round it)
+  risers: 18,
+  start: 245,               // plan angle of the first riser (entered from the dining side)
+  step: 30,                 // plan angle of each tread
+  T: 0.45,                  // depth of the helix below the line of the tread corners
+};
+SPIRAL.rise = (LV.ffFloor - LV.gf) / SPIRAL.risers;
+// the top landing, flush with the first floor, takes the next 60° after the last tread
+SPIRAL.landS = [SPIRAL.risers - 1, SPIRAL.risers + 1]; // helix parameter s (1 per tread)
+/** Plan angle (radians) at helix parameter s (0 = first riser, 1 per tread). */
+export const spiralAngle = (s) => ((SPIRAL.start - s * SPIRAL.step) * Math.PI) / 180;
+
+/** Arc of radius R round the spiral stair, from where it crosses the line z = zEdge on the
+ *  bedroom-2 side, round the front, to where it crosses that line again on the living-room side. */
+export function spiralArc(R, zEdge, segs = 44) {
+  const a0 = Math.asin((zEdge - SPIRAL.cz) / R), a1 = Math.PI - a0;
+  const pts = [];
+  for (let i = 0; i <= segs; i++) {
+    const a = a0 + ((a1 - a0) * i) / segs;
+    pts.push([SPIRAL.cx + R * Math.cos(a), SPIRAL.cz + R * Math.sin(a)]);
+  }
+  return pts;
+}
+
 // The old garden bay, now part of the hall at ground level, single height.
 export const BAY = { x0: 6.643, x1: VOID.x0, zFront: -43.689 };
 
@@ -79,6 +116,32 @@ export function voidOutline() {
     [VOID.hallX1, VOID.hallFront],
     [VOID.x0, VOID.hallFront],
   ];
+}
+
+/**
+ * First-floor guard round the spiral stair's well (glass and teak, like the railing on
+ * grid F): R = radius of its centre line, xL / xR = where the straight railing on grid F
+ * stops either side, arcs = its two curved runs as [from, to] plan angles in radians.
+ * It is open over the stair's top landing, which is where you step off.
+ */
+export function spiralGuard() {
+  const R = SPIRAL.well + 0.12, zr = VOID.hallFront + 0.12;
+  const aJ = Math.asin((zr - SPIRAL.cz) / R);              // slightly negative: bedroom-2 side
+  const wrap = (a) => a - 2 * Math.PI * Math.floor(a / (2 * Math.PI));
+  const [hi, lo] = SPIRAL.landS.map((s) => wrap(spiralAngle(s))); // landing: 95° … 35°
+  return {
+    R, zr,
+    xL: SPIRAL.cx - R * Math.cos(aJ), xR: SPIRAL.cx + R * Math.cos(aJ),
+    arcs: [[aJ, lo], [hi, Math.PI - aJ]],
+  };
+}
+
+/** Opening in the first-floor slab: the double-height space plus the spiral stair's round
+ *  well, which bites into the slab in front of grid F. (The roof stays whole over both.) */
+export function ffVoidOutline() {
+  const vo = voidOutline();
+  const i = vo.findIndex(([x, z]) => x === VOID.hallX1 && z === VOID.hallFront);
+  return [...vo.slice(0, i + 1), ...spiralArc(SPIRAL.well, VOID.hallFront), ...vo.slice(i + 1)];
 }
 
 // Pipe line area beside the guest room: a plumbing shaft open to the sky, cut
