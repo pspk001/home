@@ -29,7 +29,11 @@ function mesh(geo, mat, x, y, z, parent = group, { ry = 0, uv = true, shadow = t
   return m;
 }
 const box = (w, h, d) => new THREE.BoxGeometry(w, h, d);
-const rbox = (w, h, d, r = 0.1, s = 3) => new RoundedBoxGeometry(w, h, d, s, Math.min(r, w / 2 - 0.001, h / 2 - 0.001, d / 2 - 0.001));
+// The radius is kept at least 0.01 ft short of half the thinnest side: a flat strip
+// thinner than that becomes a hair-thin sliver of triangles, which some renderers
+// draw with a wrong depth (it then shows through walls as a dotted line).
+const rbox = (w, h, d, r = 0.1, s = 3) =>
+  new RoundedBoxGeometry(w, h, d, s, Math.max(0.001, Math.min(r, w / 2 - 0.01, h / 2 - 0.01, d / 2 - 0.01)));
 const cyl = (r0, r1, h, s = 16) => new THREE.CylinderGeometry(r0, r1, h, s);
 
 /** Creates an item group at (x, floor, z) rotated by ry and registers an optional collider. */
