@@ -243,8 +243,9 @@ export class MaterialLibrary {
     this._std('graniteBlack', { map: this._tex(blackG.map, 3), roughness: 0.12, metalness: 0.1 });
     this._std('ceramic', { color: 0xf8f8f6, roughness: 0.08, metalness: 0.02 });
     // house name plate (front of the stair block): granite with brass letters, with the
-    // owner's name; the app itself is titled "HOME" (index.html)
-    const plate = TX.namePlate({ text: 'Smt. Surbhi Pandey' });
+    // owner's name and, in smaller letters below it, her designation; the app itself is
+    // titled "HOME" (index.html)
+    const plate = TX.namePlate({ text: 'Smt. Surbhi Pandey', sub: 'Professor' });
     const plateMap = this._tex(plate.map), plateRM = this._tex(plate.rm, null, false);
     for (const t of [plateMap, plateRM]) t.wrapS = t.wrapT = THREE.ClampToEdgeWrapping;
     this._std('namePlate', { map: plateMap, roughnessMap: plateRM, metalnessMap: plateRM, roughness: 1, metalness: 1 });

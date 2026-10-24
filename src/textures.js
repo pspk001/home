@@ -394,10 +394,11 @@ export function textPlate({ W = 512, H = 128, text = '', bg = '#1c1c1c', fg = '#
 /** Decorative wall art (abstract painting). */
 /**
  * House name plate: polished black granite with a brass border and raised brass
- * lettering. Returns { map, rm }: `rm` packs roughness (G) and metalness (B), so
- * the letters shine like metal while the stone stays glossy.
+ * lettering: `text` (the name) and, optionally, `sub`, a line of smaller letters
+ * below it (e.g. a designation). Returns { map, rm }: `rm` packs roughness (G) and
+ * metalness (B), so the letters shine like metal while the stone stays glossy.
  */
-export function namePlate({ text = '', W = 1536, H = 640, seed = 61 } = {}) {
+export function namePlate({ text = '', sub = '', W = 1536, H = 640, seed = 61 } = {}) {
   const c = canvas(W, H), ctx = c.getContext('2d');
   const m = canvas(W, H), mx = m.getContext('2d');
   const r = rng(seed);
@@ -426,22 +427,35 @@ export function namePlate({ text = '', W = 1536, H = 640, seed = 61 } = {}) {
   }
   // lettering, sized to fit the plate
   const font = (px) => `600 ${px}px Georgia, 'Times New Roman', Times, serif`;
-  let size = 300;
-  ctx.font = font(size);
-  const fit = (W * 0.8) / ctx.measureText(text).width;
-  if (fit < 1) size = Math.floor(size * fit);
-  ctx.font = mx.font = font(size);
+  const fitTo = (str, px) => {                                // largest size up to px that fits 80% of the width
+    ctx.font = font(px);
+    const k = (W * 0.8) / ctx.measureText(str).width;
+    return k < 1 ? Math.floor(px * k) : px;
+  };
+  let size = fitTo(text, 300), subSize = 0, gap = 0;
+  if (sub) {
+    size = Math.min(size, Math.floor(((H - 96) * 0.78) / 1.75)); // name, gap and small line stay inside the border
+    subSize = fitTo(sub, Math.round(size * 0.5));
+    gap = size * 0.25;
+  }
+  const block = size + (sub ? gap + subSize : 0);
+  const cx = W / 2, cy = H / 2 - block / 2 + size / 2 + size * 0.04;
   ctx.textAlign = mx.textAlign = 'center';
   ctx.textBaseline = mx.textBaseline = 'middle';
-  const cx = W / 2, cy = H / 2 + size * 0.04;
-  ctx.fillStyle = 'rgba(0, 0, 0, 0.8)';
-  ctx.fillText(text, cx + 5, cy + 7);                         // raised letters cast a small shadow
-  ctx.fillStyle = brass(cy - size * 0.55, cy + size * 0.45);
-  ctx.fillText(text, cx, cy);
-  ctx.lineWidth = 1.5; ctx.strokeStyle = 'rgba(255, 244, 200, 0.5)';
-  ctx.strokeText(text, cx, cy);
-  mx.fillStyle = metal;
-  mx.fillText(text, cx, cy);
+  const raised = (str, y, px) => {
+    const k = px / size;                                      // shadow and highlight scale with the letters
+    ctx.font = mx.font = font(px);
+    ctx.fillStyle = 'rgba(0, 0, 0, 0.8)';
+    ctx.fillText(str, cx + 5 * k, y + 7 * k);                 // raised letters cast a small shadow
+    ctx.fillStyle = brass(y - px * 0.55, y + px * 0.45);
+    ctx.fillText(str, cx, y);
+    ctx.lineWidth = 1.5 * k; ctx.strokeStyle = 'rgba(255, 244, 200, 0.5)';
+    ctx.strokeText(str, cx, y);
+    mx.fillStyle = metal;
+    mx.fillText(str, cx, y);
+  };
+  raised(text, cy, size);
+  if (sub) raised(sub, cy + size / 2 + gap + subSize / 2, subSize);
   return { map: c, rm: m };
 }
 
