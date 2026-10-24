@@ -260,7 +260,7 @@ function shortName(room) {
   return {
     portico: 'Portico', lobby: 'Lobby', living: 'Living', hall: 'Dining', bed1: 'Bed 1', bed2: 'Bed 2',
     guest: 'Guest', kitchen: 'Kitchen', toilet1: 'WC', toilet2: 'WC', puja: 'Puja', stair: 'Stair',
-    ffLiving: 'Living', ffDining: 'Dining', ffKitchen: 'Kitchen', ffBed3: 'Bed 3', ffBath3: 'Bath', ffBed4: 'Bed 4',
+    ffLiving: 'Living', ffDining: 'Dining', ffKitchen: 'Kitchen', ffBed3: 'Bed 3', ffBed4: 'Bed 4',
     ffBath4: 'Bath', ffWC: 'WC', ffStair: 'Stair', ffTerrace: 'Terrace', roof: 'Roof terrace', mumty: 'Mumty',
   }[room.id] || room.name;
 }
