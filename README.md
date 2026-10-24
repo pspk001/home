@@ -1,9 +1,9 @@
-# House of Prabhat's — 3D home viewer
+# HOME — 3D home viewer
 
-An interactive, textured 3D model of House of Prabhat's, a 35′-5″ × 49′-9″ house, built from the
+An interactive, textured 3D model of a 35′-5″ × 49′-9″ house, built from the
 supplied ground-floor plan and dressed with the front elevation's facade, with a proposed 2BHK
-flat on the first floor, a spiral stair from the hall up to it, and a walkable roof terrace.
-Made with **three.js** (WebGL) and plain HTML/CSS/JavaScript.
+flat on the first floor and a walkable roof terrace. Made with **three.js** (WebGL) and plain
+HTML/CSS/JavaScript.
 
 **Live site:** https://pspk001.github.io/home/
 
@@ -17,20 +17,17 @@ Made with **three.js** (WebGL) and plain HTML/CSS/JavaScript.
 |---|---|---|
 | ![First floor](docs/dollhouse-ff.jpg) | ![First-floor plan](docs/plan-ff.jpg) | ![Roof](docs/roof.jpg) |
 
-![Spiral stair in the hall](docs/walk-spiral.jpg)
-*A 5′-0″ spiral stair rises from the middle of the hall to the first-floor dining area: grey stone steps on a white concrete helix, a curved glass balustrade and a black handrail. It stands between the hall's doors on both floors without blocking any of them.*
-
 ![Double-height dining hall](docs/walk-hall.jpg)
 *The dining hall and kitchen rise double height, overlooked by the first-floor dining area across a glass railing. Along the back the wall is solid up to door height, with a tall glass wall above it facing the sunrise.*
 
 ![First-floor dining](docs/walk-ff-dining.jpg)
-*Upstairs, the spiral stair arrives in the first-floor dining area beside the glass railing, with the dining table in front of it and the living room behind a slatted teak screen.*
+*Upstairs, the dining table of the first-floor flat stands at the railing, with the living room behind a slatted teak screen.*
 
 ---
 
 ## Open it (no install)
 
-Double-click **`Home-3D-Viewer.html`**. It is one self-contained file (~790 KB) with all code,
+Double-click **`Home-3D-Viewer.html`**. It is one self-contained file (~780 KB) with all code,
 styles and textures inside, so it works offline in any recent Chrome, Edge, Safari or Firefox
 (WebGL 2 required). It also works on phones and tablets.
 
@@ -42,7 +39,7 @@ styles and textures inside, so it works offline in any recent Chrome, Edge, Safa
 | **Ground floor / First floor / Roof** | Choose the level to look at. The room list, labels and minimap follow it, and the dollhouse and plan views slice the walls just above that floor |
 | **Dollhouse** | Walls sliced at 7′-7″ above the chosen floor so every room is visible from above, from any angle |
 | **Plan** | Top-down view of the chosen floor, with furniture |
-| **Walk** | First-person tour: drag to look, <kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd> / arrows to move (<kbd>Shift</kbd> to run), double-click the floor to walk there. The main stair climbs from the ground floor to the first floor and on to the roof, the spiral stair in the hall climbs to the first-floor dining area, and you can walk out onto the front terrace and the roof terrace. On phones use the on-screen joystick |
+| **Walk** | First-person tour: drag to look, <kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd> / arrows to move (<kbd>Shift</kbd> to run), double-click the floor to walk there. The stairs climb from the ground floor to the first floor and on to the roof, and you can walk out onto the front terrace and the roof terrace. On phones use the on-screen joystick |
 | **Rooms list / labels / minimap** | Click any room to fly into it. The info card shows level, size, area, floor finish and a **Walk inside** button |
 | **Angle** | One-click Front / Left / Back / Right / Top views |
 | **Wall cut** | Slice the whole house at any height (from 1 ft above the floor up to the full house) |
@@ -102,7 +99,6 @@ home/
    │  ├─ structure.js    ground-floor walls, floors, ceiling slab, staircase, bathroom tiles, kitchen dado
    │  ├─ openings.js     ground-floor windows (frames, glass, grilles, sills, chajjas) and doors
    │  ├─ firstfloor.js   first-floor walls, doors and windows, floors, bathroom tiles, and the stair up to the roof
-   │  ├─ spiral.js       the spiral stair from the hall to the first-floor dining area
    │  ├─ exterior.js     stair tower front, roof terrace and parapets, rear glass wall, pipe line shaft, mumty, C-frame, cladding, gates, street
    │  └─ furniture.js    beds, wardrobes, sofas, dining, kitchens, toilets, mandir, SUV, fans, terrace and roof furniture…
    └─ viewer/
@@ -119,7 +115,6 @@ home/
 - **First-floor layout:** `FF_WALLS`, `FF_DOORS` and `FF_ROOMS` in `src/plan-ff.js` (opening heights there are measured from the first-floor slab).
 - **Heights (plinth, ceiling, doors, windows):** `LV` and `OPENING` in `src/config.js`.
 - **Move or add furniture:** `buildFurniture()` in `src/build/furniture.js` (positions are in feet).
-- **Spiral stair:** `SPIRAL` in `src/config.js` (centre, size, number of risers, where it starts and which way it turns). The slab opening, ring beam, railing and minimap follow it.
 
 ## How the model was made
 
@@ -128,20 +123,18 @@ home/
 - **Assumed heights:** 2′ plinth, 11′ clear ground-floor height, 6″ slabs, 7′ door heads, window sills 3′ above the floor.
 - **Facade:** colours and features come from the elevation image: sage walls, tan stair tower with tall windows, the white "C" frame around the first-floor terrace, the wood-cladding panel and its frame, the slatted box at the base, the gates, the portico canopy, the parapet with vents and the white railing.
 - **Open double-height space (design change):** the walls between the drawing/dining hall, the kitchen and the old garden are gone, so the three share one space. The garden is paved in with the hall, and the puja room now opens onto it. There is no first-floor slab over the dining area, the kitchen and the middle of the hall: they rise about 22 ft to a solid roof with a board-formed concrete soffit. The double height reaches forward to grid F, where the first floor ends in a glass railing over an exposed concrete beam. The old garden bay keeps a normal ceiling, with an exposed beam along its edge. Along the back, behind the dining area and the kitchen, the rear (east) wall is solid up to door height (7 ft above the floor) and a teak-framed glass wall above it rises to the roof, divided by two columns, so the morning sun comes in over the lower wall. The old garden bay has a window from door height up to its ceiling. A cascade of glass globes hangs over the dining table. The wash basin stands against the rear wall beside the kitchen counter. The config is `VOID` in `src/config.js`.
-- **Bedroom doors (design change):** bedroom 1's door moved to the living-room end of its wall and bedroom 2's door to the kitchen end of its wall. Bedroom 1's wardrobe and bedroom 2's TV wall moved to suit. The hall's crockery unit first stood where bedroom 2's old door was; it now stands against the partition at the front of the hall, clear of the spiral stair.
+- **Bedroom doors (design change):** bedroom 1's door moved to the living-room end of its wall and bedroom 2's door to the kitchen end of its wall. Bedroom 1's wardrobe and bedroom 2's TV wall moved to suit, and the hall's crockery unit now stands where bedroom 2's old door was.
 - **Living room:** a 9′-wide window onto the portico (no sunshade, since the portico is roofed).
 - **Portico:** a full-size 7-seater SUV in graphite grey, parked nose-out. It is a generic model, not a specific make.
-- **Name plate:** raised brass letters on a black granite plate (4′-10″ × 2′-0″), beside the light slit at the front of the stair block. Its text is set in `src/materials.js` and is separate from the app's title ("House of Prabhat's", in `index.html`).
+- **Name plate:** raised brass letters on a black granite plate (4′-10″ × 2′-0″), beside the light slit at the front of the stair block. Its text is set in `src/materials.js` and is separate from the app's title ("HOME", in `index.html`).
 - **Columns (design change):** two columns are added to the original column layout: one in the rear wall on grid 2 (where the old garden bay meets the dining area) and one on grid 5 at grid F (bedroom 2's wall, under the first-floor edge beam). Column B5 is shown standing in the rear glass wall. The config is `REAR_COLS` in `src/config.js` and `C-F5` in `src/plan.js`.
-- **First floor (design proposal):** the supplied drawings cover only the ground floor, so the first floor is a proposed 2BHK flat. Its partitions sit over the ground-floor walls wherever possible. From the stair landing a teak main door opens into an entrance passage, with the kitchen off it through an arch (L-shaped counter, sink under a window onto the pipe line shaft, hob and chimney, fridge). The passage leads to the dining area, where the spiral stair from the hall arrives beside the glass railing on grid F, which looks down into the double-height hall; the 6-seater table stands in front of the stair. Beyond a slatted teak screen and TV unit is the living room, which opens onto the front terrace over the portico through a sliding glass door. Bedroom 3 (the master bedroom, over bedroom 1 and the puja room) is entered from the living room. It has a dressing area, an attached bathroom, windows to the north and east, and a large teak-framed window into the double-height hall. Bedroom 4 (over bedroom 2) opens off the dining area and has its own bathroom, a wardrobe, a TV and a study desk under a window into the double-height kitchen. A common toilet also opens off the dining area. Wet areas are stacked over the ground-floor toilets, and bedroom 4's bathroom and the kitchen take light and air from the pipe line shaft. A glazed door from the stair landing also opens onto the front terrace.
+- **First floor (design proposal):** the supplied drawings cover only the ground floor, so the first floor is a proposed 2BHK flat. Its partitions sit over the ground-floor walls wherever possible. From the stair landing a teak main door opens into an entrance passage, with the kitchen off it through an arch (L-shaped counter, sink under a window onto the pipe line shaft, hob and chimney, fridge). The passage leads to the dining area, whose 6-seater table stands at the glass railing on grid F, looking down into the double-height hall. Beyond a slatted teak screen and TV unit is the living room, which opens onto the front terrace over the portico through a sliding glass door. Bedroom 3 (the master bedroom, over bedroom 1 and the puja room) is entered from the living room. It has a dressing area, an attached bathroom, windows to the north and east, and a large teak-framed window into the double-height hall. Bedroom 4 (over bedroom 2) opens off the dining area and has its own bathroom, a wardrobe, a TV and a study desk under a window into the double-height kitchen. A common toilet also opens off the dining area. Wet areas are stacked over the ground-floor toilets, and bedroom 4's bathroom and the kitchen take light and air from the pipe line shaft. A glazed door from the stair landing also opens onto the front terrace.
 - **Stair to the roof:** the dog-legged stair continues from the first-floor landing up to the roof in the same tower, with steel-and-teak railings, a balustrade round the stair well at the top, and a door from the mumty onto the roof terrace. The roof is walkable all over, including over the double-height space, behind a 3 ft parapet; the water tank and the pipe line shaft's parapet stand on it.
-- **Spiral stair (design proposal):** a 5′-0″ spiral stair links the drawing/dining hall to the first-floor dining area. The hall is 9′-11″ wide between its walls and has doors along both sides (bedroom 1 and the living-room arch on one side, bedroom 2 and the common toilet on the other, and bedroom 4 and the common toilet above), so the stair fits in one place only: in the middle of the hall, centred on grid F. There it leaves about 2′-5″ to walk past on each side, every door keeps its full opening with at least 2′-3″ clear in front of it, and all the door leaves swing into the rooms. It has 18 risers of about 7¾″, treads of 30° on plan (about 70 cm wide, as in the reference picture), grey stone steps on a white concrete helix, a curved glass balustrade on steel standoffs with a black handrail, about 6′-7″ headroom, and a top landing flush with the first floor. You step on from the dining side and step off towards bedroom 4 and the entrance passage. A round opening is cut in the first-floor slab in front of grid F, with a curved ring beam round it in place of that part of the edge beam, and the first-floor railing curves round the opening, open only where the stair arrives. The hall's crockery unit moved to the partition at the front of the hall, its ceiling fan moved forward, and the first-floor dining table moved forward by about 2′-3″. The config is `SPIRAL` in `src/config.js`.
 - **Pipe line area:** as in the original drawing, the plumbing shaft beside the guest room is open to the sky. The first-floor slab and the roof are cut away over it, walls enclose it on the first floor, and a parapet surrounds the opening on the roof. The config is `DUCT` in `src/config.js`.
 
 ## Assumptions and limitations
 
 - The first-floor layout was not provided. The 2BHK flat shown is a proposal that fits the elevation (terrace over the portico, stair tower and mumty, parapets) and the ground-floor structure. Room sizes are in `src/plan-ff.js` and can be adjusted. The window positions on the side and rear walls of the first floor are part of the proposal too.
-- The spiral stair is a proposal too. Cutting its round opening in the first-floor slab and replacing that part of the grid-F edge beam with a ring beam is a structural change for a structural engineer to design.
 - The dashed "X" in the entrance lobby is treated as the entrance lobby. It is not modelled as a double-height cut-out.
 - The plan shows no door swings, so doors are shown open and the main door is pushed back against the lobby wall.
 - The plan labels the hall 10′×24′. As drawn, a partition separates the passage, which left about 10′×20′ of dining/drawing space. With the old garden merged in, the hall now runs about 24′ from that partition to the rear wall.
