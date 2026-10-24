@@ -1,6 +1,6 @@
 import { ALL_ROOMS, WALLS, FLOORS, roomArea, roomAnchor } from '../plan.js';
 import { FF_MAP, ROOF_MAP } from '../plan-ff.js';
-import { LV, PLOT, rearZ, SPIRAL, spiralAngle } from '../config.js';
+import { LV, PLOT, rearZ } from '../config.js';
 import { attachJoystick } from './walk.js';
 
 const FINISH = {
@@ -140,7 +140,7 @@ export function initUI(app) {
   $('#shot-btn').addEventListener('click', () => {
     const a = document.createElement('a');
     a.href = app.screenshot();
-    a.download = `house-of-prabhats-${app.view}-${app.floor}${app.selected ? '-' + app.selected : ''}.png`;
+    a.download = `home-${app.view}-${app.floor}${app.selected ? '-' + app.selected : ''}.png`;
     document.body.appendChild(a);
     a.click();
     a.remove();
@@ -200,28 +200,9 @@ function buildMinimap(app) {
   el('polygon', { points: pts([[0, PLOT.rearLeft], [W, PLOT.rearRight], [W, PLOT.plotFront], [0, PLOT.plotFront]]), class: 'mm-plot' });
 
   const LAYERS = {
-    gf: { walls: WALLS.map((w) => [w.x[0], w.x[1], w.z[0], w.z[1]]), polys: [[[0, rearZ(0)], [W, rearZ(W)], [W, rearZ(W) + 0.79], [0, rearZ(0) + 0.79]]], voids: [], rails: [], spiral: true },
+    gf: { walls: WALLS.map((w) => [w.x[0], w.x[1], w.z[0], w.z[1]]), polys: [[[0, rearZ(0)], [W, rearZ(W)], [W, rearZ(W) + 0.79], [0, rearZ(0) + 0.79]]], voids: [], rails: [] },
     ff: FF_MAP,
     roof: ROOF_MAP,
-  };
-  // spiral stair on plan: outline, one turn of treads, and the way up along the walking line
-  const spiralSymbol = (parent) => {
-    const g = el('g', { class: 'mm-spiral' }, parent);
-    const S = SPIRAL;
-    const at = (r, s) => { const a = spiralAngle(s); return [S.cx + r * Math.cos(a), S.cz + r * Math.sin(a)]; };
-    el('circle', { cx: S.cx, cy: S.cz, r: S.rGlass }, g);
-    const turn = Math.round(360 / S.step);
-    for (let k = 0; k < turn; k++) {
-      const [x0, z0] = at(S.rCol, k), [x1, z1] = at(S.rGlass, k);
-      el('line', { x1: x0, y1: z0, x2: x1, y2: z1 }, g);
-    }
-    el('circle', { cx: S.cx, cy: S.cz, r: S.rCol + 0.1, class: 'mm-col' }, g);
-    const walk = [];
-    for (let s = 0.4; s <= turn - 1.2; s += 0.25) walk.push(at(1.45, s));
-    el('polyline', { points: pts(walk), class: 'mm-up' }, g);
-    const [ex, ez] = at(1.45, turn - 0.6), [bx, bz] = walk[walk.length - 1];
-    const dx = ex - bx, dz = ez - bz, l = Math.hypot(dx, dz) || 1, ux = dx / l, uz = dz / l;
-    el('polygon', { points: pts([[ex, ez], [bx - uz * 0.45, bz + ux * 0.45], [bx + uz * 0.45, bz - ux * 0.45]]), class: 'mm-up-head' }, g);
   };
   const layers = {}, roomEls = {};
   for (const f of FLOORS) {
@@ -236,11 +217,9 @@ function buildMinimap(app) {
       roomEls[room.id] = g;
     }
     for (const v of d.voids) el('polygon', { points: pts(v), class: 'mm-void' }, layer);
-    if (d.spiral) spiralSymbol(layer);
     for (const w of d.walls) rect(w, 'mm-wall', layer);
     for (const p of d.polys) el('polygon', { points: pts(p), class: 'mm-wall' }, layer);
-    // railings: rectangles, or polygons for the curved guard round the spiral stair's well
-    for (const r of d.rails) (Array.isArray(r[0]) ? el('polygon', { points: pts(r), class: 'mm-rail' }, layer) : rect(r, 'mm-rail', layer));
+    for (const r of d.rails) rect(r, 'mm-rail', layer);
     for (const room of rooms) {
       if (room.id === 'duct') continue;
       const a = roomAnchor(room);
