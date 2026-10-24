@@ -161,8 +161,6 @@ export class MaterialLibrary {
     this._std('graniteGrey', { map: this._tex(gGrey.map, 3), roughness: 0.28, metalness: 0.05 });
     const conc = this._texPair(TX.noiseSurface({ N: 512, base: [168, 166, 160], amp: 0.12, scale: 8, speckDark: 0.02, seed: 24 }), 6);
     this._std('concrete', { map: conc.map, bumpMap: conc.bump, bumpScale: 1, roughness: 0.95 });
-    // honed grey stone of the spiral stair's steps
-    this._std('stairStone', { color: 0xb2b0ac, map: conc.map, bumpMap: conc.bump, bumpScale: 0.25, roughness: 0.34, metalness: 0.04 });
     const pav = this._texPair(TX.pavers({ N: 512, cols: 4, rows: 8, colors: [[150, 148, 142], [132, 130, 126], [166, 160, 150]], seed: 31 }), 8);
     this._std('pavers', { map: pav.map, bumpMap: pav.bump, bumpScale: 2, roughness: 0.85 });
     const terr = this._texPair(TX.tiles({ N: 512, n: 4, grout: 3, base: [176, 102, 74], vary: 0.08, noiseAmp: 0.12, groutColor: [190, 180, 165], seed: 33 }), 4);
@@ -200,7 +198,6 @@ export class MaterialLibrary {
     this._std('doorPVC', { color: 0xdad8d2, roughness: 0.35 });
     this._std('brass', { color: 0xc9a45c, roughness: 0.28, metalness: 1 });
     this._std('steel', { color: 0xc9cdd1, roughness: 0.3, metalness: 1 });
-    this._std('steelBlack', { color: 0x1b1c1f, roughness: 0.32, metalness: 0.65 }); // spiral stair column and handrail
     this._std('chrome', { color: 0xe8eaec, roughness: 0.08, metalness: 1 });
     const gm = TX.brushed({ N: 256, base: [118, 124, 130] });
     this._std('gateMetal', { color: 0xffffff, map: this._tex(gm.map, 2), roughness: 0.45, metalness: 0.75 });
@@ -246,7 +243,7 @@ export class MaterialLibrary {
     this._std('graniteBlack', { map: this._tex(blackG.map, 3), roughness: 0.12, metalness: 0.1 });
     this._std('ceramic', { color: 0xf8f8f6, roughness: 0.08, metalness: 0.02 });
     // house name plate (front of the stair block): granite with brass letters. The plate
-    // keeps this text; the app itself is titled "House of Prabhat's" (index.html)
+    // keeps this text; the app itself is titled "HOME" (index.html)
     const plate = TX.namePlate({ text: 'Surbhi Bhawan' });
     const plateMap = this._tex(plate.map), plateRM = this._tex(plate.rm, null, false);
     for (const t of [plateMap, plateRM]) t.wrapS = t.wrapT = THREE.ClampToEdgeWrapping;

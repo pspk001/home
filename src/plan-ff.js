@@ -1,4 +1,4 @@
-import { rearZ, REAR_T, REAR_COL_D, PLOT, DUCT, VOID, REAR_COLS, SPIRAL, spiralArc, spiralGuard, ffVoidOutline, ductOutline, stairWell } from './config.js';
+import { rearZ, REAR_T, REAR_COL_D, PLOT, DUCT, VOID, REAR_COLS, voidOutline, ductOutline, stairWell } from './config.js';
 
 // ---------------------------------------------------------------------------
 // First floor: a 2BHK flat over the ground floor (design proposal, not from the
@@ -100,10 +100,7 @@ export const FF_ROOMS = [
   { id: 'ffLiving', name: 'Living Room', size: '11′-6″ × 11′-8″', rects: [[0.75, VOID.x0, -30.534, -18.831]], floor: 'tileWarm',
     note: 'Opens onto the front terrace through a sliding glass door. Sofa, armchair and a TV unit that screens the dining area; window to the north.' },
   { id: 'ffDining', name: 'Dining & Entrance', size: '9′-11″ × 12′-6″ + passage', rects: [[VOID.x0, VOID.hallX1, VOID.hallFront, -18.831], [18.25, VOID.hallX1, -18.831, -9.635]], floor: 'tileMarble',
-    // the floor is cut round the spiral stair's well
-    floorRects: [[18.25, VOID.hallX1, -18.831, -9.635]],
-    floorPolys: [[[VOID.x0, -18.831], [VOID.hallX1, -18.831], [VOID.hallX1, VOID.hallFront], ...spiralArc(SPIRAL.well, VOID.hallFront), [VOID.x0, VOID.hallFront]]],
-    note: 'Entered from the stair landing through the main door. The spiral stair from the hall below comes up here, beside the glass railing that looks down into the double-height dining hall, with the 6-seater table in front of it. The kitchen, the common toilet and bedroom 4 open off it.' },
+    note: 'Entered from the stair landing through the main door. The 6-seater table looks down into the double-height dining hall across the glass railing. The kitchen, the common toilet and bedroom 4 open off it.' },
   { id: 'ffKitchen', name: 'Kitchen', size: '8′-11″ × 10′-8″', rects: [[22.674, DUCT.x0 - DUCT.wall, DUCT.z0, -9.635]], floor: 'tileKitchen',
     note: 'L-shaped granite counter, sink under a window onto the pipe line shaft, hob with chimney, fridge. Opens off the entrance passage through an arch.' },
   { id: 'ffBed3', name: 'Bedroom 3', size: '11′-2″ × 10′-5″ + dressing', rects: [[0.75, 11.879, RZ0, -37.25], [6.35, 11.879, -37.25, -30.934]], floor: 'wood', rear: true,
@@ -144,31 +141,10 @@ export const FF_MAP = {
     [17.5, W, -0.75, 0], // tower front
   ],
   polys: [rearBand(0, REAR_COLS[0][1], REAR_T), rearBand(REAR_COLS[0][1], W, 0.3), rearBand(REAR_COLS[1][0], REAR_COLS[1][1], REAR_COL_D)],
-  // open to below: the double-height space with the spiral stair's well, the stair well
-  // and the pipe line shaft
-  voids: [ffVoidOutline(), stairWell(), ductOutline()],
-  rails: ffRails(),
-  spiral: true,
+  // open to below: the double-height space, the stair well and the pipe line shaft
+  voids: [voidOutline(), stairWell(), ductOutline()],
+  rails: [[VOID.x0, VOID.hallX1, VOID.hallFront, VOID.hallFront + 0.25]],
 };
-
-/** The glass railing on grid F and the curved guard round the spiral stair's well, for the minimap. */
-function ffRails() {
-  const g = spiralGuard();
-  const zE = VOID.hallFront;
-  const band = ([a0, a1]) => {
-    const pts = [], n = 16;
-    for (let i = 0; i <= n; i++) {
-      const a = a0 + ((a1 - a0) * i) / n;
-      pts.push([SPIRAL.cx + (SPIRAL.well + 0.25) * Math.cos(a), SPIRAL.cz + (SPIRAL.well + 0.25) * Math.sin(a)]);
-    }
-    for (let i = n; i >= 0; i--) {
-      const a = a0 + ((a1 - a0) * i) / n;
-      pts.push([SPIRAL.cx + SPIRAL.well * Math.cos(a), SPIRAL.cz + SPIRAL.well * Math.sin(a)]);
-    }
-    return pts;
-  };
-  return [[VOID.x0, g.xL, zE, zE + 0.25], [g.xR, VOID.hallX1, zE, zE + 0.25], ...g.arcs.map(band)];
-}
 
 export const ROOF_MAP = {
   walls: [

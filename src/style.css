@@ -160,10 +160,6 @@ body[data-view="plan"] .rl-size { display: none; }
 .mm-wall { fill: #d9dee5; pointer-events: none; }
 .mm-void { fill: rgba(0, 0, 0, 0.38); stroke: rgba(255, 255, 255, 0.3); stroke-width: 0.18; stroke-dasharray: 0.7 0.5; pointer-events: none; }
 .mm-rail { fill: #8fc4ff; pointer-events: none; }
-.mm-spiral { fill: none; stroke: #d9dee5; stroke-width: 0.14; pointer-events: none; }
-.mm-spiral .mm-col { fill: #d9dee5; }
-.mm-spiral .mm-up { stroke: var(--warm); stroke-width: 0.2; }
-.mm-spiral .mm-up-head { fill: var(--warm); stroke: none; }
 .mm-label { fill: var(--muted); font-size: 1.9px; font-weight: 600; text-anchor: middle; pointer-events: none; }
 .mm-cone { fill: rgba(242, 184, 75, 0.35); stroke: none; }
 .mm-dot { fill: var(--warm); stroke: #1b1f25; stroke-width: 0.35; }
