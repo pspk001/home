@@ -759,17 +759,20 @@ function firstFloorFurniture() {
   ffKitchen();
 
   // ---- Bedroom 3 (master): bed against the rear wall, between its two windows ----
-  const bx = 5.6;
+  // (set a little towards the north, so there is room to open the wardrobe beside it)
+  const bx = 5.2;
   bed(item(bx, backAt(bx) + 3.3, slant), 5.0, 6.0, 'blanketSage');
-  collide(3.0, 8.2, backAt(bx) - 0.1, backAt(bx) + 6.4, 2.2);
-  for (const sx of [2.2, 9.0]) {
+  collide(bx - 2.6, bx + 2.6, backAt(bx) - 0.1, backAt(bx) + 6.4, 2.2);
+  for (const sx of [1.8, 8.6]) {
     sideTable(item(sx, backAt(sx) + 0.62, slant));
     collide(sx - 0.65, sx + 0.65, backAt(sx), backAt(sx) + 1.2, 2);
   }
-  wardrobe(item(3.55, -38.2, Math.PI), 5.4);
-  collide(0.85, 6.25, -39.2, -37.25, 7.2);
-  armchair(item(10.25, -39.9, -2.55), 2.7, 2.5);
-  collide(8.95, 11.55, -41.2, -38.6, 2.8);
+  // wardrobe on the south wall, on the solid stretch between the rear wall and the window into the hall
+  wardrobe(item(10.929, -43.9, -Math.PI / 2), 5.4);
+  collide(9.979, 11.879, -46.6, -41.2, 7.2);
+  // armchair further along the south wall, in front of that window, turned to the room
+  armchair(item(10.3, -37.5, -2.2), 2.7, 2.5);
+  collide(9.0, 11.6, -38.8, -36.2, 2.8);
   // dressing table against the front wall, beside the door from the living room
   const dt = item(7.1, -31.584, Math.PI);
   mesh(rbox(1.6, 2.5, 1.3, 0.04), 'furnLight', 0, 1.25, 0, dt);
@@ -783,17 +786,19 @@ function firstFloorFurniture() {
   curtains('z', 0.75, -45.0, -40.0, 1, 'curtainBlue');
   wallArt(bx, F + 5.9, backAt(bx) + 0.05, slant, 3.2, 1.2, 'art2');
 
-  // ---- Bedroom 3's study corner: work desk under the north window, bookshelf ----
-  studyDesk(1.75, -33.92, 4.6);
-  collide(0.75, 2.75, -36.22, -31.62, 2.6);
-  officeChair(item(3.75, -33.92, -Math.PI / 2));
-  collide(3.05, 4.45, -34.62, -33.22, 3.2);
-  bookshelf(item(4.45, -36.4, 0), 3.0, 6.0, 1.0);
-  collide(2.95, 5.95, -36.9, -35.9, 6.0);
+  // ---- Bedroom 3's study corner: bookshelf on the west wall, work desk beside it
+  //      under the north window, both open to the rest of the room ----
+  bookshelf(item(2.3, -31.434, Math.PI), 3.0, 6.0, 1.0);
+  collide(0.8, 3.8, -31.934, -30.934, 6.0);
+  const dz = -35.6; // desk (and window) centre: midway between the bookshelf and the bed's window
+  studyDesk(1.75, dz, 4.6);
+  collide(0.75, 2.75, dz - 2.3, dz + 2.3, 2.6);
+  officeChair(item(3.75, dz, -Math.PI / 2));
+  collide(3.05, 4.45, dz - 0.7, dz + 0.7, 3.2);
   // roller blind, half down, inside the window reveal
-  mesh(box(0.03, 1.8, 3.8), 'curtainBlue', 0.66, F + 6.4, -33.92, group, { uv: false });
-  mesh(cyl(0.07, 0.07, 3.9, 10), 'white', 0.66, F + 7.33, -33.92, group, { uv: false }).rotation.x = Math.PI / 2;
-  ceilingLight(3.4, -33.9, 0.32);
+  mesh(box(0.03, 1.8, 3.8), 'curtainBlue', 0.66, F + 6.4, dz, group, { uv: false });
+  mesh(cyl(0.07, 0.07, 3.9, 10), 'white', 0.66, F + 7.33, dz, group, { uv: false }).rotation.x = Math.PI / 2;
+  ceilingLight(3.4, dz, 0.32);
 
   // ---- Bedroom 4: bed against the party wall, desk under the window into the kitchen void ----
   bed(item(31.27, -33.3, -Math.PI / 2), 5.0, 6.1, 'blanketRust');
