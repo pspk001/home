@@ -124,6 +124,69 @@ function chair(g) {
   mesh(rbox(1.5, 1.8, 0.22, 0.08), 'chairFabric', 0, 2.55, -0.65, g);
   for (const sx of [-1, 1]) for (const sz of [-1, 1]) mesh(box(0.12, 1.45, 0.12), 'furnWood', sx * 0.62, 0.72, sz * 0.6, g);
 }
+/** Swivel office chair facing local +z: padded seat and back, gas column, five-star base on castors. */
+function officeChair(g) {
+  mesh(rbox(1.55, 0.32, 1.5, 0.12), 'sofaGrey', 0, 1.62, 0.05, g);
+  mesh(rbox(1.45, 1.9, 0.25, 0.12), 'sofaGrey', 0, 2.85, -0.68, g);
+  mesh(box(0.12, 0.9, 0.08), 'blackMatte', 0, 2.0, -0.62, g);
+  for (const sx of [-1, 1]) {
+    mesh(box(0.1, 0.5, 0.1), 'blackMatte', sx * 0.72, 1.98, 0.05, g);
+    mesh(rbox(0.16, 0.08, 0.95, 0.03), 'blackMatte', sx * 0.72, 2.26, 0.05, g);
+  }
+  mesh(cyl(0.07, 0.07, 1.05, 12), 'chrome', 0, 0.95, 0, g, { uv: false });
+  for (let i = 0; i < 5; i++) {
+    const a = (i * Math.PI * 2) / 5;
+    const leg = mesh(box(0.14, 0.09, 1.0), 'blackMatte', Math.sin(a) * 0.5, 0.33, Math.cos(a) * 0.5, g);
+    leg.rotation.y = a;
+    mesh(new THREE.SphereGeometry(0.09, 10, 8), 'blackMatte', Math.sin(a) * 0.98, 0.1, Math.cos(a) * 0.98, g, { uv: false });
+  }
+}
+/** Work desk along a wall: x, z = centre, w = length along z; the wall is on -x, the user sits on +x. */
+function studyDesk(x, z, w) {
+  const g = item(x, z, Math.PI / 2); // local +z → world +x (into the room), local x along the wall
+  mesh(rbox(w, 0.12, 2.0, 0.03), 'furnWood', 0, 2.44, 0, g);
+  for (const sx of [-1, 1]) mesh(box(0.1, 2.38, 1.8), 'blackMatte', sx * (w / 2 - 0.15), 1.19, 0, g);
+  mesh(box(w - 0.3, 0.08, 0.08), 'blackMatte', 0, 2.3, -0.85, g);
+  // drawer pedestal under one end
+  mesh(box(1.3, 1.9, 1.7), 'laminate', w / 2 - 0.95, 0.97, 0.05, g);
+  for (const y of [0.6, 1.25, 1.75]) mesh(box(0.6, 0.04, 0.03), 'steel', w / 2 - 0.95, y, 0.91, g, { uv: false });
+  // laptop on a stand, open
+  mesh(box(0.9, 0.05, 0.7), 'blackMatte', -0.4, 2.62, -0.15, g, { uv: false });
+  const lid = mesh(box(1.15, 0.8, 0.03), 'screen', -0.4, 3.02, -0.52, g, { uv: false });
+  lid.rotation.x = -0.18;
+  mesh(box(1.1, 0.04, 0.78), 'laminateGrey', -0.4, 2.67, -0.12, g, { uv: false });
+  // keyboard, mouse, notebook, mug, lamp, plant
+  mesh(box(1.2, 0.04, 0.4), 'laminateGrey', -0.4, 2.52, 0.55, g, { uv: false });
+  mesh(box(0.14, 0.05, 0.22), 'blackMatte', 0.45, 2.52, 0.55, g, { uv: false });
+  mesh(box(0.7, 0.05, 0.95), 'saffron', 1.1, 2.53, 0.25, g, { uv: false });
+  mesh(cyl(0.12, 0.11, 0.3, 14), 'ceramic', 1.55, 2.65, -0.35, g, { uv: false });
+  mesh(cyl(0.22, 0.25, 0.06, 16), 'blackMatte', -1.75, 2.53, -0.55, g, { uv: false });
+  const arm = mesh(cyl(0.035, 0.035, 1.3, 8), 'blackMatte', -1.75, 3.15, -0.45, g, { uv: false });
+  arm.rotation.x = 0.35;
+  const shade = mesh(cyl(0.12, 0.26, 0.32, 16), 'blackMatte', -1.75, 3.75, -0.1, g, { uv: false });
+  shade.rotation.x = 0.55;
+  mesh(cyl(0.11, 0.11, 0.02, 14), 'lampShade', -1.75, 3.62, -0.02, g, { uv: false });
+  plant(x - 0.6, z - w / 2 + 0.35, 0.45, F + 2.5);
+}
+/** Open bookshelf against a wall, facing local +z. */
+function bookshelf(g, w, h, d) {
+  mesh(box(w, h, 0.06), 'furnLight', 0, h / 2, -d / 2 + 0.03, g);
+  for (const sx of [-1, 1]) mesh(box(0.08, h, d), 'furnLight', sx * (w / 2 - 0.04), h / 2, 0, g);
+  const shelves = 5;
+  for (let i = 0; i <= shelves; i++) mesh(box(w - 0.16, 0.07, d - 0.06), 'furnLight', 0, 0.12 + (i * (h - 0.2)) / shelves, 0.03, g);
+  const colours = ['blanketBlue', 'blanketRust', 'sofaGrey', 'blanketSage', 'cushionMustard', 'blanketMaroon'];
+  for (let i = 0; i < shelves; i++) {
+    const y0 = 0.16 + (i * (h - 0.2)) / shelves;
+    let x = -w / 2 + 0.15, k = i * 3;
+    while (x < w / 2 - 0.5) {
+      if ((k + i) % 7 === 3) { x += 0.45; k++; continue; } // a gap now and then
+      const bw = 0.1 + ((k * 37) % 5) * 0.03, bh = 0.62 + ((k * 13) % 4) * 0.08;
+      mesh(box(bw, bh, d * 0.7), colours[k % colours.length], x + bw / 2, y0 + bh / 2, 0.05, g, { uv: false });
+      x += bw + 0.015;
+      k++;
+    }
+  }
+}
 function ceilingFan(x, z, blades = 'furnWood') {
   const g = item(x, z, Math.random() * 3, CEIL);
   mesh(cyl(0.05, 0.05, 1.2, 8), 'white', 0, -0.6, 0, g, { uv: false, shadow: false });
@@ -707,25 +770,29 @@ function firstFloorFurniture() {
   collide(0.85, 6.25, -39.2, -37.25, 7.2);
   armchair(item(10.25, -39.9, -2.55), 2.7, 2.5);
   collide(8.95, 11.55, -41.2, -38.6, 2.8);
-  // dressing table in the dressing area, beside the bathroom door
-  const dt = item(7.05, -36.1, Math.PI / 2);
-  mesh(rbox(1.8, 2.5, 1.3, 0.04), 'furnLight', 0, 1.25, 0, dt);
-  mesh(box(1.5, 2.2, 0.04), 'furnLight', 0, 4.1, -0.63, dt, { uv: false });
-  mesh(box(1.25, 1.95, 0.03), 'mirror', 0, 4.1, -0.6, dt, { uv: false });
+  // dressing table against the front wall, beside the door from the living room
+  const dt = item(7.1, -31.584, Math.PI);
+  mesh(rbox(1.6, 2.5, 1.3, 0.04), 'furnLight', 0, 1.25, 0, dt);
+  mesh(box(1.4, 2.2, 0.04), 'furnLight', 0, 4.1, -0.63, dt, { uv: false });
+  mesh(box(1.15, 1.95, 0.03), 'mirror', 0, 4.1, -0.6, dt, { uv: false });
   mesh(cyl(0.5, 0.45, 1.4, 16), 'sofaAccent', 0, 0.7, 1.05, dt, { uv: false });
-  collide(6.35, 7.75, -37.05, -35.15, 2.5);
+  collide(6.3, 7.9, -32.234, -30.934, 2.5);
+  collide(6.55, 7.65, -33.2, -32.1, 1.5);
   ceilingFan(bx, -43.2);
   ceilingLight(9.1, -34.0, 0.35);
   curtains('z', 0.75, -45.0, -40.0, 1, 'curtainBlue');
   wallArt(bx, F + 5.9, backAt(bx) + 0.05, slant, 3.2, 1.2, 'art2');
 
-  // ---- Bathroom 3 ----
-  wcUnit(2.0, -32.2, Math.PI / 2);
-  collide(0.75, 2.95, -32.85, -31.55, 2);
-  basinUnit(1.42, -34.45, Math.PI / 2);
-  collide(0.75, 2.05, -35.25, -33.65, 3);
-  showerUnit(4.6, -36.87, 0);
-  showerScreen(3.3, -35.25, 5.98, -35.25);
+  // ---- Bedroom 3's study corner: work desk under the north window, bookshelf ----
+  studyDesk(1.75, -33.92, 4.6);
+  collide(0.75, 2.75, -36.22, -31.62, 2.6);
+  officeChair(item(3.75, -33.92, -Math.PI / 2));
+  collide(3.05, 4.45, -34.62, -33.22, 3.2);
+  bookshelf(item(4.45, -36.4, 0), 3.0, 6.0, 1.0);
+  collide(2.95, 5.95, -36.9, -35.9, 6.0);
+  // roller blind, half down, inside the window reveal
+  mesh(box(0.03, 1.8, 3.8), 'curtainBlue', 0.66, F + 6.4, -33.92, group, { uv: false });
+  mesh(cyl(0.07, 0.07, 3.9, 10), 'white', 0.66, F + 7.33, -33.92, group, { uv: false }).rotation.x = Math.PI / 2;
   ceilingLight(3.4, -33.9, 0.32);
 
   // ---- Bedroom 4: bed against the party wall, desk under the window into the kitchen void ----

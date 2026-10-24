@@ -275,11 +275,6 @@ function cladding(B) {
       else B.box(s > 0 ? c : c - t, s > 0 ? c + t : c, c0, c1, a, b, mat);
     }
   };
-  // Bathroom 3 (x 0.75..6.0, z -36.9..-30.934): shower at the back, WC and basin on the outer wall
-  face('x', 0.75, 1, -36.9, -30.934, 'bathWall', [vent(-35.4, -33.4)]);
-  face('x', 6.0, -1, -36.9, -30.934, 'bathWall', [door(-34.95, -32.2)]);
-  face('z', -36.9, 1, 0.75, 6.0, 'bathAccent');
-  face('z', -30.934, -1, 0.75, 6.0, 'bathWall');
   // Bathroom 4 (x 28.422..34.667, z -26.53..-21.074): WC on the party wall
   face('x', 28.422, 1, -26.53, -21.074, 'bathWall');
   face('x', PLOT.width - 0.75, -1, -26.53, -21.074, 'bathAccent');
