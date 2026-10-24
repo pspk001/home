@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import { Batcher, regroup, worldUV, extrudeXZ, groupOnly } from '../geometry.js';
+import { Batcher, regroup, worldUV } from '../geometry.js';
 import { LV, STAIR, rearZ, PLOT } from '../config.js';
 import { FF_WALLS, FF_DOORS, FF_OPENING, FF_ROOMS } from '../plan-ff.js';
 import { makeLeaf } from './openings.js';
@@ -58,12 +58,6 @@ export function buildFirstFloor(ctx) {
       }
     }
     const g = RB.build(get, { name: `floor-${room.id}`, castShadow: false });
-    // floors with a curved edge (cut round the spiral stair's well): top face only
-    for (const poly of room.floorPolys || []) {
-      const m = new THREE.Mesh(groupOnly(extrudeXZ(poly, [], FF0, y, 24), 0), get(room.floor));
-      m.receiveShadow = true;
-      g.add(m);
-    }
     g.traverse((o) => {
       if (o.isMesh) { o.userData.room = room.id; walkables.push(o); pickables.push(o); }
     });

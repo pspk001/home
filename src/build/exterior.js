@@ -1,8 +1,7 @@
 import * as THREE from 'three';
 import { Batcher, extrudeXZ, regroup, roundedRect, worldUV } from '../geometry.js';
-import { LV, PLOT, rearZ, REAR_T, VOID, BAY, REAR_COLS, REAR_COL_D, voidOutline, DUCT, ductOutline, inDuct, STAIR, SPIRAL, spiralGuard } from '../config.js';
+import { LV, PLOT, rearZ, REAR_T, VOID, BAY, REAR_COLS, REAR_COL_D, voidOutline, DUCT, ductOutline, inDuct, STAIR } from '../config.js';
 import { makeLeaf } from './openings.js';
-import { faceTo } from './spiral.js';
 
 // ---------------------------------------------------------------------------
 // Everything outside the rooms: the stair tower front, the rear wall of the
@@ -404,64 +403,22 @@ export function buildExterior(ctx) {
 
 // ---------------------------------------------------------------------------
 // Double-height space: the glass railing along the first-floor edge on grid F, where
-// the dining area looks down into it, curving round the spiral stair's well and open
-// where the stair arrives. (The walls round it are in plan-ff.js, the stair in spiral.js.)
+// the dining area looks down into it. (The walls round it are in plan-ff.js.)
 // ---------------------------------------------------------------------------
 function buildVoidRailing(B, col) {
   // teak members: joint-free grain that runs along each member
   const tb = (x0, x1, y0, y1, z0, z1) => B.box(x0, x1, y0, y1, z0, z1, teak(Math.max(x1 - x0, z1 - z0), y1 - y0));
-  const zE = VOID.hallFront;
-  const g = spiralGuard();
-  const zr = g.zr;
-  // straight runs either side of the spiral stair's well
-  const straight = (xa, xb) => {
-    tb(xa, xb, FF0 + 3.35, FF0 + 3.55, zE - 0.02, zr + 0.13);   // handrail
-    tb(xa, xb, FF0, FF0 + 0.18, zE, zr + 0.08);                  // shoe rail
-    const n = Math.max(1, Math.round((xb - xa) / 1.6));
-    const step = (xb - xa - 0.2) / n;
-    for (let i = 0; i <= n; i++) {
-      const x = xa + 0.1 + i * step;
-      B.box(x - 0.05, x + 0.05, FF0, FF0 + 3.35, zr - 0.05, zr + 0.05, 'steel');
-    }
-    GB.box(xa + 0.05, xb - 0.05, FF0 + 0.2, FF0 + 3.33, zr - 0.012, zr + 0.012, 'glass');
-    col(xa, xb, zE - 0.02, zr + 0.13, FF0, FF0 + 3.55, 'void-rail');
-  };
-  straight(VOID.x0, g.xL);
-  straight(g.xR, VOID.hallX1);
-  // the same railing curved round the well, open over the stair's top landing
-  const { cx, cz, well } = SPIRAL;
-  const at = (r, a, y) => [cx + r * Math.cos(a), y, cz + r * Math.sin(a)];
-  const ring = (into, key, r0, r1, a0, a1, y0, y1, ends) => {
-    const n = Math.max(2, Math.ceil(Math.abs(a1 - a0) / 0.07));
-    for (let i = 0; i < n; i++) {
-      const a = a0 + ((a1 - a0) * i) / n, b = a0 + ((a1 - a0) * (i + 1)) / n, m = (a + b) / 2;
-      const o = [Math.cos(m), 0, Math.sin(m)];
-      faceTo(into, key, at(r1, a, y0), at(r1, b, y0), at(r1, b, y1), at(r1, a, y1), o);
-      if (r1 - r0 < 1e-3) continue; // a single curved sheet (glass)
-      faceTo(into, key, at(r0, a, y1), at(r1, a, y1), at(r1, b, y1), at(r0, b, y1), [0, 1, 0]);
-      faceTo(into, key, at(r0, a, y0), at(r1, a, y0), at(r1, b, y0), at(r0, b, y0), [0, -1, 0]);
-      faceTo(into, key, at(r0, a, y0), at(r0, b, y0), at(r0, b, y1), at(r0, a, y1), [-o[0], 0, -o[2]]);
-    }
-    if (ends) for (const a of [a0, a1]) {
-      const t = [-Math.sin(a), 0, Math.cos(a)], s = a === a0 ? -Math.sign(a1 - a0) : Math.sign(a1 - a0);
-      faceTo(into, key, at(r0, a, y0), at(r1, a, y0), at(r1, a, y1), at(r0, a, y1), [t[0] * s, 0, t[2] * s]);
-    }
-  };
-  for (const [a0, a1] of g.arcs) {
-    ring(B, 'teakFrame', well - 0.02, well + 0.25, a0, a1, FF0 + 3.35, FF0 + 3.55, true); // handrail
-    ring(B, 'teakFrame', well, well + 0.2, a0, a1, FF0, FF0 + 0.18, true);                // shoe rail
-    ring(GB, 'glass', g.R, g.R, a0, a1, FF0 + 0.2, FF0 + 3.33, false);                     // glass
-    const n = Math.max(1, Math.round((Math.abs(a1 - a0) * g.R) / 1.4));
-    for (let i = 0; i <= n; i++) {
-      const [x, , z] = at(g.R, a0 + ((a1 - a0) * i) / n, 0);
-      B.box(x - 0.05, x + 0.05, FF0, FF0 + 3.35, z - 0.05, z + 0.05, 'steel');
-    }
-    const c = Math.max(2, Math.ceil((Math.abs(a1 - a0) * g.R) / 0.3));
-    for (let i = 0; i <= c; i++) {
-      const [x, , z] = at(g.R, a0 + ((a1 - a0) * i) / c, 0);
-      CTX.colliders.push({ x0: x - 0.13, x1: x + 0.13, z0: z - 0.13, z1: z + 0.13, y0: FF0, y1: FF0 + 3.55, id: 'void-rail', r: 0.4 });
-    }
+  const zE = VOID.hallFront, hx = VOID.hallX1;
+  const zr = zE + 0.12;
+  tb(VOID.x0, hx, FF0 + 3.35, FF0 + 3.55, zE - 0.02, zr + 0.13);   // handrail
+  tb(VOID.x0, hx, FF0, FF0 + 0.18, zE, zr + 0.08);                  // shoe rail
+  const step = (hx - VOID.x0 - 0.2) / 4;
+  for (let i = 0; i <= 4; i++) {
+    const x = VOID.x0 + 0.1 + i * step;
+    B.box(x - 0.05, x + 0.05, FF0, FF0 + 3.35, zr - 0.05, zr + 0.05, 'steel');
   }
+  GB.box(VOID.x0 + 0.05, hx - 0.05, FF0 + 0.2, FF0 + 3.33, zr - 0.012, zr + 0.012, 'glass');
+  col(VOID.x0, hx, zE - 0.02, zr + 0.13, FF0, FF0 + 3.55, 'void-rail');
 }
 
 // ---------------------------------------------------------------------------
