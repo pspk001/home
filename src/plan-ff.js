@@ -30,9 +30,9 @@ export const FF_OPENING = {
 
 export const FF_WALLS = [
   // ---- outer shell ----------------------------------------------------------
-  // north (left) wall: bedroom 3, bathroom 3, living room
+  // north (left) wall: bedroom 3, its study corner (window over the desk), living room
   { id: 'ffL-bed3', x: [0, 0.75], z: [rearZ(0), -37.25], s0: E, s1: B3, ends: [E, null], open: [{ t: 'win', a: -45.0, b: -40.0 }] },
-  { id: 'ffL-bath3', x: [0, 0.75], z: [-37.25, -30.934], s0: E, s1: T, open: [{ t: 'vent', a: -35.4, b: -33.4 }] },
+  { id: 'ffL-study', x: [0, 0.75], z: [-37.25, -30.934], s0: E, s1: B3, open: [{ t: 'win', a: -35.92, b: -31.92 }] },
   { id: 'ffL-liv', x: [0, 0.75], z: [-30.934, -18.039], s0: E, s1: L, ends: [null, E], open: [{ t: 'win', a: -26.0, b: -21.0 }] },
   // front of the main block, facing the terrace: sliding door from the living room, dining window
   { id: 'ffT-back', x: [0.75, 18.25], z: [-18.831, -18.039], s0: L, s1: E, ends: [null, L],
@@ -62,12 +62,12 @@ export const FF_WALLS = [
     open: [{ t: 'win', a: 25.5, b: 30.5, frame: 'teak', curtain: 1 }] },
 
   // ---- partitions ----------------------------------------------------------------
-  // living room / bedroom 3 suite (over the bedroom-1 wall)
-  { id: 'ff-liv-bath3', x: [0.75, 6.175], z: [-30.934, -30.534], s0: T, s1: L },
+  // living room / bedroom 3 (over the bedroom-1 wall)
+  { id: 'ff-liv-study', x: [0.75, 6.175], z: [-30.934, -30.534], s0: B3, s1: L },
   { id: 'ff-liv-bed3', x: [6.175, 11.439], z: [-30.934, -30.534], s0: B3, s1: L, open: [{ t: 'door', a: 8.0, b: 11.0, door: 'ffBed3' }] },
   { id: 'ff-col-f2', x: [11.439, VOID.x0], z: [VOID.hallFront, -30.534], faces: { nx: B3, px: L, nz: B3, pz: L } },
-  { id: 'ff-bath3-n', x: [0.75, 6.35], z: [-37.25, -36.9], s0: B3, s1: T, ends: [null, B3] },
-  { id: 'ff-bath3-e', x: [6.0, 6.35], z: [-36.9, -30.934], s0: T, s1: B3, open: [{ t: 'door', a: -34.95, b: -32.2, door: 'ffBath3' }] },
+  // behind the wardrobe: the short wall at the back of the study corner
+  { id: 'ff-study-n', x: [0.75, 6.35], z: [-37.25, -36.9], s0: B3, s1: B3, ends: [null, B3] },
   // dining side: bedroom 4, common toilet, kitchen (over the bedroom-2 / toilet / guest-room walls)
   { id: 'ff-col-n2', x: [VOID.hallX1, 22.922], z: [VOID.hallFront, -30.534], faces: { nx: L, px: B4, nz: B4, pz: B4 } },
   { id: 'ff-bed4-w', x: [VOID.hallX1, 22.674], z: [-30.534, -26.882], s0: L, s1: B4, open: [{ t: 'door', a: -30.2, b: -27.2, door: 'ffBed4' }] },
@@ -85,7 +85,6 @@ export const FF_WALLS = [
 export const FF_DOORS = {
   ffMain:  { hinge: 'a', side: 0, style: 'teak' },
   ffBed3:  { hinge: 'b', side: 0, style: 'wood' },
-  ffBath3: { hinge: 'b', side: 0, style: 'pvc' },
   ffBed4:  { hinge: 'b', side: 1, style: 'wood' },
   ffWC:    { hinge: 'b', side: 1, style: 'pvc' },
   ffBath4: { hinge: 'b', side: 1, style: 'pvc' },
@@ -103,10 +102,8 @@ export const FF_ROOMS = [
     note: 'Entered from the stair landing through the main door. The 6-seater table looks down into the double-height dining hall across the glass railing. The kitchen, the common toilet and bedroom 4 open off it.' },
   { id: 'ffKitchen', name: 'Kitchen', size: '8′-11″ × 10′-8″', rects: [[22.674, DUCT.x0 - DUCT.wall, DUCT.z0, -9.635]], floor: 'tileKitchen',
     note: 'L-shaped granite counter, sink under a window onto the pipe line shaft, hob with chimney, fridge. Opens off the entrance passage through an arch.' },
-  { id: 'ffBed3', name: 'Bedroom 3', size: '11′-2″ × 10′-5″ + dressing', rects: [[0.75, 11.879, RZ0, -37.25], [6.35, 11.879, -37.25, -30.934]], floor: 'wood', rear: true,
-    note: 'Master bedroom over bedroom 1 and the puja room. Queen bed, wardrobe and a dressing area with the attached bathroom. Windows face north and east, and a large window looks into the double-height hall.' },
-  { id: 'ffBath3', name: 'Bathroom 3', size: '5′-3″ × 6′-0″', rects: [[0.75, 6.0, -36.9, -30.934]], floor: 'tileBath',
-    note: 'Attached to bedroom 3: WC, wash basin and shower, ventilator in the outer wall.' },
+  { id: 'ffBed3', name: 'Bedroom 3', size: '11′-2″ × 10′-5″ + study', rects: [[0.75, 11.879, RZ0, -37.25], [0.75, 11.879, -37.25, -30.934]], floor: 'wood', rear: true,
+    note: 'Master bedroom over bedroom 1 and the puja room. Queen bed and wardrobe, a dressing table by the door, and a study corner with a work desk under a window looking out to the north. A large window looks into the double-height hall.' },
   { id: 'ffBed4', name: 'Bedroom 4', size: '12′-0″ × 10′-11″', rects: [[22.674, W - 0.75, -37.821, -26.882]], floor: 'woodLight',
     note: 'Over bedroom 2. Queen bed, wardrobe, TV and an attached bathroom. Two windows look into the double-height dining hall and kitchen, lit by the rear glass wall.' },
   { id: 'ffBath4', name: 'Bathroom 4', size: '6′-3″ × 5′-6″', rects: [[28.422, W - 0.75, -26.53, -21.074]], floor: 'tileBath',
