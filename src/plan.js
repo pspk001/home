@@ -1,4 +1,4 @@
-import { rearZ, REAR_T, DUCT } from './config.js';
+import { rearZ, REAR_T, DUCT, GARDEN } from './config.js';
 import { FF_ROOMS, ROOF_ROOMS } from './plan-ff.js';
 
 // ---------------------------------------------------------------------------
@@ -119,6 +119,9 @@ export const ROOMS = [
     note: 'Dog-legged stair, 20 risers to the first floor.' },
   { id: 'duct', name: 'Pipe Line Area', size: '2′-2″ × 10′-8″', rects: [[DUCT.x0, DUCT.x1, DUCT.z0, DUCT.z1]], floor: 'concrete', level: 'duct',
     note: 'Service shaft for plumbing, open to the sky: it runs up through the first floor and the roof. The guest room window and the toilet and stair ventilators open onto it.' },
+  { id: 'garden', name: 'Garden', size: '49′-9″ × 8′-9.1″', areaText: '435.6 sq ft (1 decimal)',
+    rects: [[GARDEN.x0, GARDEN.x1, GARDEN.z0, GARDEN.z1]], floor: 'grass', level: 'garden',
+    note: 'The strip of land beside the house on the north side, 1 decimal: it runs the full length of the house, 49′-9″ from the street to the back of the puja room, and is 8′-9.1″ wide. A lawn with stepping stones from its own gate on the street to a tulsi chaura by the puja room, flower beds along the boundary wall and the house, a bench, two small trees and garden lights.' },
 ];
 
 for (const r of ROOMS) r.floorId = 'gf';

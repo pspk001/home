@@ -186,6 +186,16 @@ body[data-view="plan"] .rl-size { display: none; }
 #help-btn { position: fixed; z-index: 5; top: 16px; right: 16px; }
 #shot-btn { position: fixed; z-index: 5; top: 16px; right: 58px; }
 #shot-btn svg { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linejoin: round; }
+/* full-screen view button: phones only, upright (the narrow layout below) or on their side (short screens) */
+#ui-btn { display: none; }
+#ui-btn svg { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+#ui-btn .ui-show, #ui-btn[aria-pressed="true"] .ui-hide { display: none; }
+#ui-btn[aria-pressed="true"] .ui-show { display: block; }
+@media (max-width: 760px), (max-height: 520px) {
+  #ui-btn { display: grid; position: fixed; z-index: 5; top: 16px; right: 100px; }
+  /* full-screen view: no map, no controls, no room card */
+  body.ui-hidden #panel, body.ui-hidden #minimap, body.ui-hidden #info-card { display: none; }
+}
 
 #help {
   position: fixed; z-index: 10; top: 60px; right: 16px; width: min(360px, calc(100vw - 32px));
@@ -239,6 +249,8 @@ body[data-view="walk"] .ctl-cut, body[data-view="walk"] .angles { display: none;
   .brand svg { width: 22px; height: 22px; }
   #help-btn { top: 12px; right: 12px; }
   #shot-btn { top: 12px; right: 54px; }
+  #ui-btn { top: 12px; right: 96px; }
+  body.ui-hidden #joystick { bottom: calc(28px + env(safe-area-inset-bottom)); } /* no sheet to sit above */
   #minimap { top: 56px; }
   #minimap { top: 56px; right: 12px; bottom: auto; width: 104px; padding: 5px; }
   .mm-label { display: none; }

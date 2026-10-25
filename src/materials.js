@@ -267,6 +267,10 @@ export class MaterialLibrary {
     this._std('potDark', { color: 0x3a3a3c, roughness: 0.5 });
     this._std('soil', { color: 0x4a3526, roughness: 1 });
     this._std('stoneStep', { color: 0xb8b2a6, roughness: 0.8 });
+    // garden flowers: hibiscus, marigold (two shades), rose, jasmine
+    for (const [key, color] of [['flowerRed', 0xc8202c], ['flowerOrange', 0xf08a12], ['flowerYellow', 0xf4c21c], ['flowerPink', 0xe0508e], ['flowerWhite', 0xf6f3ea]]) {
+      this._std(key, { color, roughness: 0.65, flatShading: true });
+    }
     this._std('mirror', { color: 0xdfe8ee, roughness: 0.02, metalness: 1 });
     this._std('art', { map: this._tex(TX.painting({}).map), roughness: 0.8 });
     this._std('art2', { map: this._tex(TX.painting({ seed: 7, palette: [[40, 90, 120], [200, 180, 150], [180, 80, 60], [30, 40, 50]] }).map), roughness: 0.8 });
@@ -297,6 +301,7 @@ export class MaterialLibrary {
     this._add('treeBark', new THREE.MeshStandardMaterial({ color: 0x5a4533, roughness: 1 }), site);
     this._add('treeLeaf', new THREE.MeshStandardMaterial({ map: this._tex(TX.foliage({ N: 256, base: [72, 120, 50], seed: 9 }).map, 3), roughness: 0.85, flatShading: true }), site);
     this._add('treeLeaf2', new THREE.MeshStandardMaterial({ map: this._tex(TX.foliage({ N: 256, base: [96, 132, 58], seed: 19 }).map, 3), roughness: 0.85, flatShading: true }), site);
+    this._add('blossom', new THREE.MeshStandardMaterial({ color: 0xfbf6e4, emissive: 0x2a2410, roughness: 0.6, flatShading: true }), site); // frangipani flowers
     this._add('roadLine', new THREE.MeshStandardMaterial({ color: 0xf2f2ea, roughness: 0.7 }), site);
     this._add('lampPole', new THREE.MeshStandardMaterial({ color: 0x4a4e53, roughness: 0.5, metalness: 0.6 }), site);
     this._add('lampHead', new THREE.MeshStandardMaterial({ color: 0xffffff, emissive: 0xfff2d6, emissiveIntensity: 0.5 }), site);

@@ -11,7 +11,7 @@ export const LV = {
   footpath: 0.3,
   portico: 0.4,
   duct: 1.2,
-  garden: 1.5,
+  garden: 0.3,      // lawn of the side garden (north side), level with the footpath
   gf: 2.0,          // ground-floor finished floor level (2' plinth)
   gfCeil: 13.0,     // 11' clear height
   ff: 13.5,         // first-floor level (6" slab)
@@ -46,6 +46,29 @@ export const PLOT = {
 /** z of the (slanted) rear boundary at a given x */
 export const rearZ = (x) => PLOT.rearLeft + (PLOT.rearRight - PLOT.rearLeft) * (x / PLOT.width);
 export const REAR_T = 0.79; // rear wall thickness
+
+// Side garden: the strip of land beside the house on the north (left) side, 1 decimal
+// (435.6 sq ft). It runs the full length of the house, from the plot line at the street
+// back to the back of the puja room (49'-9"), so its breadth from the house wall out to
+// the boundary follows from the area: 435.6 / 49.748 = 8.756' (8'-9.1"). Its compound
+// walls stand inside the land; the front wall is in line with the neighbours' walls.
+const GARDEN_AREA = 435.6, GARDEN_LEN = PLOT.plotFront - PLOT.rearLeft;
+export const GARDEN = {
+  area: GARDEN_AREA,
+  x0: -GARDEN_AREA / GARDEN_LEN, x1: 0,
+  z0: PLOT.rearLeft, z1: PLOT.plotFront,
+  wall: 0.6,             // compound wall thickness
+  front: [0.25, 0.85],   // front wall (z)
+  bed: 1.575,            // flower bed along the boundary wall
+  houseBed: 1.3,         // flower bed along the house wall
+};
+GARDEN.path = (GARDEN.x0 + GARDEN.wall + GARDEN.bed + GARDEN.x1 - GARDEN.houseBed) / 2; // the path, midway between the beds
+GARDEN.gate = [GARDEN.path - 1.5, GARDEN.path + 1.5];                                   // gate opening in the front wall (x)
+/** Footprints [x0, x1, z0, z1] of the garden's compound walls (the gate pillars are the inner ends of the front walls). */
+export const gardenWalls = () => {
+  const { x0, x1, z0, wall: t, front: [f0, f1], gate: [g0, g1] } = GARDEN;
+  return [[x0, x0 + t, z0, f1], [x0 + t, x1, z0, z0 + t], [x0 + t, g0, f0, f1], [g1, x1, f0, f1]];
+};
 
 // Double-height space over the dining area, the kitchen and the middle of the hall:
 // there is no first-floor slab here, so it rises to the roof. It reaches forward to
