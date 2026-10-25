@@ -2,7 +2,7 @@
 
 An interactive, textured 3D model of a 35′-5″ × 49′-9″ house, built from the
 supplied ground-floor plan and dressed with the front elevation's facade, with a proposed 2BHK
-flat on the first floor and a walkable roof terrace. Made with **three.js** (WebGL) and plain
+flat on the first floor, a walkable roof terrace and a side garden. Made with **three.js** (WebGL) and plain
 HTML/CSS/JavaScript.
 
 **Live site:** https://pspk001.github.io/home/
@@ -22,6 +22,9 @@ HTML/CSS/JavaScript.
 
 ![First-floor dining](docs/walk-ff-dining.jpg)
 *Upstairs, the dining table of the first-floor flat stands at the railing, with the living room behind a slatted teak screen.*
+
+![Side garden](docs/walk-garden.jpg)
+*The side garden on the north side of the house, from its gate: stepping stones run to the tulsi chaura by the puja room, between flower beds along the boundary wall and the house.*
 
 ---
 
@@ -126,6 +129,7 @@ home/
 - **Bedroom doors (design change):** bedroom 1's door moved to the living-room end of its wall and bedroom 2's door to the kitchen end of its wall. Bedroom 1's wardrobe and bedroom 2's TV wall moved to suit, and the hall's crockery unit now stands where bedroom 2's old door was.
 - **Living room:** a 9′-wide window onto the portico (no sunshade, since the portico is roofed).
 - **Portico:** a full-size 7-seater SUV in graphite grey, parked nose-out. It is a generic model, not a specific make.
+- **Side garden:** the strip of land beside the house on the north side, 1 decimal (435.6 sq ft). It runs the full length of the house, 49′-9″ from the plot line at the street to the back of the puja room, so it is 8′-9.1″ wide (435.6 ÷ 49.75). Its sage compound walls (5′-6″, white coping) stand inside the land, with the front wall in line with the neighbours'. A gate in the front wall, in the house gates' style, opens onto stepping stones across the lawn that lead to a whitewashed tulsi chaura with a lamp niche by the puja room. There are flower beds along the boundary wall (hibiscus, marigold, rose and jasmine, with a frangipani near the gate and a guava at the back) and along the house wall, a bench facing the living-room window, and four low garden lights. Its size and position are `GARDEN` in `src/config.js`; it is built in `buildGarden()` in `src/build/exterior.js` and listed as a room (Garden) on the ground floor.
 - **Name plate:** raised brass letters on a black granite plate (4′-10″ × 2′-0″), beside the light slit at the front of the stair block: a name, with a designation in smaller letters below it. Its text is set in `src/materials.js` and is separate from the app's title ("HOME", in `index.html`).
 - **Columns (design change):** two columns are added to the original column layout: one in the rear wall on grid 2 (where the old garden bay meets the dining area) and one on grid 5 at grid F (bedroom 2's wall, under the first-floor edge beam). Column B5 is shown standing in the rear glass wall. The config is `REAR_COLS` in `src/config.js` and `C-F5` in `src/plan.js`.
 - **First floor (design proposal):** the supplied drawings cover only the ground floor, so the first floor is a proposed 2BHK flat. Its partitions sit over the ground-floor walls wherever possible. From the stair landing a teak main door opens into an entrance passage, with the kitchen off it through an arch (L-shaped counter, sink under a window onto the pipe line shaft, hob and chimney, fridge). The passage leads to the dining area, whose 6-seater table stands at the glass railing on grid F, looking down into the double-height hall. Beyond a slatted teak screen and TV unit is the living room, which opens onto the front terrace over the portico through a sliding glass door. Bedroom 3 (the master bedroom, over bedroom 1 and the puja room) is entered from the living room. It has a wardrobe on the south wall beside the bed, an armchair, a dressing table beside the door, windows to the north and east, and a large teak-framed window into the double-height hall. The north-west corner is a study corner open to the rest of the room: a bookshelf on the west wall, and beside it a work desk and office chair, where the desk faces a window looking out to the north (this corner was an attached bathroom in the first version). Bedroom 4 (over bedroom 2) opens off the dining area and has its own bathroom, a wardrobe, a TV and a study desk under a window into the double-height kitchen. A common toilet also opens off the dining area. Wet areas are stacked over the ground-floor toilets, and bedroom 4's bathroom and the kitchen take light and air from the pipe line shaft. A glazed door from the stair landing also opens onto the front terrace.

@@ -110,6 +110,10 @@
     <button id="shot-btn" type="button" class="icon-btn" aria-label="Save this view as an image" title="Save this view as an image">
       <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 8h3l2-3h6l2 3h3v11H4z" /><circle cx="12" cy="13" r="3.5" /></svg>
     </button>
+    <button id="ui-btn" type="button" class="icon-btn" aria-pressed="false" aria-label="Hide the map and controls" title="Hide the map and controls">
+      <svg class="ui-hide" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5" /></svg>
+      <svg class="ui-show" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 4v5H4M15 4v5h5M9 20v-5H4M15 20v-5h5" /></svg>
+    </button>
     <button id="help-btn" type="button" class="icon-btn" aria-label="Help">?</button>
     <div id="help" hidden role="dialog" aria-label="How to use">
       <button id="help-close" type="button" class="icon-btn" aria-label="Close help">✕</button>
@@ -118,11 +122,12 @@
         <li><b>Rotate</b> drag · <b>Zoom</b> scroll / pinch · <b>Pan</b> right-drag / two fingers</li>
         <li><b>Click a room</b> (or its label / the minimap) to fly into it</li>
         <li><b>Floor</b> buttons switch between the ground floor, the first floor and the roof</li>
+        <li>On a phone, the <b>corners</b> button at the top hides the map and the controls for a full-screen view; tap it again to bring them back</li>
         <li><b>Wall cut</b> slices the walls so you can see inside from any angle</li>
         <li><b>Walk</b> mode: drag to look, WASD / arrows to move, double-click the floor to go there. The stairs go all the way up to the roof</li>
         <li>Keys: <kbd>1</kbd>–<kbd>4</kbd> views · <kbd>PgUp</kbd> <kbd>PgDn</kbd> floors · <kbd>L</kbd> labels · <kbd>F</kbd> furniture · <kbd>R</kbd> rotate · <kbd>Esc</kbd> back</li>
       </ul>
-      <p class="fine">Ground floor modelled from the supplied plan. The dining hall, kitchen and old garden are one open space; over the dining area and the kitchen it rises double height, lit by a tall glass wall facing the sunrise. The first floor is a proposed 2BHK flat: living room opening onto the front terrace, dining area overlooking the double-height hall, kitchen, two bedrooms (bedroom 4 with an attached bathroom, bedroom 3 with a study corner whose work desk faces a window), and a common toilet. The stair carries on to a walkable roof terrace.</p>
+      <p class="fine">Ground floor modelled from the supplied plan. The dining hall, kitchen and old garden are one open space; over the dining area and the kitchen it rises double height, lit by a tall glass wall facing the sunrise. The first floor is a proposed 2BHK flat: living room opening onto the front terrace, dining area overlooking the double-height hall, kitchen, two bedrooms (bedroom 4 with an attached bathroom, bedroom 3 with a study corner whose work desk faces a window), and a common toilet. The stair carries on to a walkable roof terrace. Beside the house on the north side is a garden on a 1-decimal strip of land (49′-9″ × 8′-9.1″), with its own gate on the street.</p>
     </div>
 
     <script type="module" src="/src/main.js"></script>
