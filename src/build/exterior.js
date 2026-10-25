@@ -1,6 +1,6 @@
 import * as THREE from 'three';
 import { Batcher, extrudeXZ, regroup, roundedRect, worldUV } from '../geometry.js';
-import { LV, PLOT, rearZ, REAR_T, VOID, BAY, REAR_COLS, REAR_COL_D, voidOutline, DUCT, ductOutline, inDuct, STAIR } from '../config.js';
+import { LV, PLOT, rearZ, REAR_T, VOID, BAY, REAR_COLS, REAR_COL_D, voidOutline, DUCT, ductOutline, inDuct, STAIR, GARDEN, gardenWalls } from '../config.js';
 import { makeLeaf } from './openings.js';
 
 // ---------------------------------------------------------------------------
@@ -398,7 +398,189 @@ export function buildExterior(ctx) {
   house.add(strip);
   walkables.push(strip);
 
+  buildGarden(ctx);
   buildSite(ctx);
+}
+
+// ---------------------------------------------------------------------------
+// Side garden on the strip of land beside the house on the north side (GARDEN in
+// config.js: 1 decimal, 49'-9" × 8'-9.1"). Compound walls round it, with its own
+// gate on the street; the lawn is the garden's room floor (structure.js). Stepping
+// stones run from the gate to a tulsi chaura by the puja room, between a flower bed
+// along the boundary wall (two small trees and a bench in it) and a narrow bed along
+// the house, with low garden lights beside the path.
+// ---------------------------------------------------------------------------
+function buildGarden(ctx) {
+  const { mats, house, colliders } = ctx;
+  const get = (k) => mats.get(k);
+  const B = new Batcher();
+  const G = GARDEN, T = G.wall, Y = LV.garden;
+  const [f0, f1] = G.front, [g0, g1] = G.gate;
+  const xIn = G.x0 + T, zBack = G.z0 + T;  // inside faces of the boundary wall and the back wall
+  const col = (x0, x1, z0, z1, y1, id = 'garden') => colliders.push({ x0, x1, z0, z1, y0: 0, y1, id });
+  let seed = 11;
+  const rnd = () => ((seed = (seed * 16807) % 2147483647) / 2147483647);
+  const blob = (r, key, x, y, z, sy = 0.85, detail = 1) => {
+    const m = new THREE.Mesh(new THREE.IcosahedronGeometry(r, detail), get(key));
+    m.position.set(x, y, z);
+    m.scale.y = sy;
+    m.castShadow = true;
+    m.receiveShadow = true;
+    house.add(m);
+    return m;
+  };
+
+  // ---- compound walls: sage with a white coping, like the house; taller pillars at the gate ----
+  const H = 5.2, CAP = 0.3, PH = 5.9;
+  const [wN, wBack, wA, wB] = gardenWalls();
+  const pillars = [[g0 - 0.6, g0], [g1, g1 + 0.6]];
+  // [footprint, coping overhang at the -x end, at the +x end]: no overhang on the neighbour's
+  // side or where a wall runs into a gate pillar
+  const bodies = [[wN, 0, 0.05], [wBack, 0.05, 0.05], [[wA[0], g0 - 0.6, f0, f1], 0.05, 0], [[g1 + 0.6, wB[1], f0, f1], 0, 0.05]];
+  bodies.forEach(([[x0, x1, z0, z1], oa, ob], i) => {
+    B.box(x0, x1, 0, H, z0, z1, { all: 'ext', ny: null });
+    // copings overlap at the corners: each sits a hair lower than the one before, so no two tops share a plane
+    B.box(x0 - oa, x1 + ob, H, H + CAP - i * 0.01, z0 - 0.05, z1 + 0.05, 'white');
+  });
+  for (const [x0, x1] of pillars) {
+    B.box(x0, x1, 0, PH, f0 - 0.03, f1 + 0.03, { all: 'ext', ny: null });
+    B.box(x0 - 0.06, x1 + 0.06, PH, PH + 0.25, f0 - 0.09, f1 + 0.09, 'white');
+  }
+  for (const [x0, x1, z0, z1] of [wN, wBack, wA, wB]) col(x0, x1, z0, z1, PH + 0.25, 'garden-wall');
+
+  // ---- gate: same style as the house gates, standing open into the garden ----
+  const gate = makeGate(mats, g1 - g0, 4.6);
+  gate.position.set(g1 - 0.1, Y, f0);
+  gate.rotation.y = Math.PI / 2;
+  house.add(gate);
+  col(g1 - 0.2, g1, f0 - 3.05, f0, 5, 'gate-garden');
+  // paving under the gate and a landing inside it; a paved strip in front of the wall, like the house's
+  B.box(g0, g1, Y, Y + 0.03, f0, f1, 'pavers');
+  B.box(G.x0, G.x1, Y, Y + 0.03, f1, G.z1, 'pavers');
+  B.box(g0, g1, Y, Y + 0.03, -1.6, f0, 'pavers');
+
+  // ---- beds: soil behind a whitewashed kerb ----
+  const bed = (x0, x1, z0, z1, kerbAt) => {
+    const kx0 = kerbAt === 'px' ? x1 - 0.25 : x0, kx1 = kerbAt === 'px' ? x1 : x0 + 0.25;
+    B.box(kx0, kx1, 0, Y + 0.32, z0, z1, { all: 'white', ny: null });
+    const sx0 = kerbAt === 'px' ? x0 : kx1, sx1 = kerbAt === 'px' ? kx0 : x1;
+    B.box(sx0, sx1, 0, Y + 0.27, z0, z1, { py: 'soil', all: 'white', ny: null });
+    col(x0, x1, z0, z1, 3, 'garden-bed');
+  };
+  const bedX1 = xIn + G.bed;         // the bed along the boundary wall, kerb on the lawn side
+  const bench = [-25.7, -20.9];      // gap in that bed for the bench
+  bed(xIn, bedX1, zBack, bench[0], 'px');
+  bed(xIn, bedX1, bench[1], f0, 'px');
+  for (const z of bench) B.box(xIn, bedX1, 0, Y + 0.32, z - (z === bench[0] ? 0.25 : 0), z + (z === bench[0] ? 0 : 0.25), { all: 'white', ny: null });
+  bed(G.x1 - G.houseBed, G.x1, zBack, f0, 'nx');  // the bed along the house, kerb on the lawn side
+
+  // ---- stepping stones from the gate to the tulsi chaura ----
+  const PX = G.path;                 // the path's centre line, through the gate
+  const CZ = zBack + 2.65;            // the tulsi chaura, at the far end beside the puja room
+  for (let z = -2.3; z > CZ + 1.85; z -= 1.95) {
+    const dx = (rnd() - 0.5) * 0.3, w = 1.45 + rnd() * 0.15, d = 1.15 + rnd() * 0.15;
+    B.box(PX + dx - w / 2, PX + dx + w / 2, Y, Y + 0.05, z - d / 2, z + d / 2, 'stoneStep');
+  }
+
+  // ---- bench against the boundary wall, facing the house, on a paved pad ----
+  B.box(xIn, bedX1 + 0.3, Y, Y + 0.03, bench[0], bench[1], 'pavers');
+  for (const z of [bench[0] + 0.7, bench[1] - 0.7]) B.box(xIn + 0.15, xIn + 1.35, Y, Y + 1.42, z - 0.15, z + 0.15, 'stoneStep');
+  B.box(xIn + 0.05, xIn + 1.45, Y + 1.42, Y + 1.6, bench[0] + 0.3, bench[1] - 0.3, 'furnWood');
+  for (const y of [Y + 2.05, Y + 2.6]) B.box(xIn, xIn + 0.12, y, y + 0.36, bench[0] + 0.3, bench[1] - 0.3, 'furnWood');
+  col(xIn, xIn + 1.5, bench[0] + 0.2, bench[1] - 0.2, 3, 'garden-bench');
+
+  // ---- tulsi chaura by the puja room: whitewashed, with terracotta bands and a lamp niche ----
+  {
+    const cx = PX, cz = CZ;
+    B.box(cx - 1.1, cx + 1.1, Y, Y + 0.35, cz - 1.1, cz + 1.1, 'white');
+    B.box(cx - 0.8, cx + 0.8, Y + 0.35, Y + 2.2, cz - 0.8, cz + 0.8, 'white');
+    B.box(cx - 0.84, cx + 0.84, Y + 0.35, Y + 0.5, cz - 0.84, cz + 0.84, 'pot');
+    B.box(cx - 0.95, cx + 0.95, Y + 2.2, Y + 2.5, cz - 0.95, cz + 0.95, 'pot');
+    B.box(cx - 0.8, cx + 0.8, Y + 2.5, Y + 2.52, cz - 0.8, cz + 0.8, 'soil');
+    B.box(cx - 0.28, cx + 0.28, Y + 0.85, Y + 1.55, cz + 0.8, cz + 0.82, 'blackMatte');  // lamp niche
+    B.box(cx - 0.3, cx + 0.3, Y + 0.8, Y + 0.85, cz + 0.8, cz + 1.0, 'white');            // its ledge
+    const diya = new THREE.Mesh(new THREE.CylinderGeometry(0.09, 0.06, 0.06, 12), get('brass'));
+    diya.position.set(cx, Y + 0.88, cz + 0.9);
+    house.add(diya);
+    const flame = new THREE.Mesh(new THREE.ConeGeometry(0.03, 0.1, 8), get('lampShade'));
+    flame.position.set(cx, Y + 0.96, cz + 0.9);
+    house.add(flame);
+    // the tulsi plant: a small bushy dome on a woody stem
+    const stem = new THREE.Mesh(new THREE.CylinderGeometry(0.035, 0.05, 0.45, 6), get('treeBark'));
+    stem.position.set(cx, Y + 2.72, cz);
+    house.add(stem);
+    for (let i = 0; i < 11; i++) {
+      const a = i * 2.4 + rnd() * 0.5, r = i === 0 ? 0 : 0.18 + rnd() * 0.3;
+      blob(0.2 + rnd() * 0.08, 'tulsi', cx + Math.cos(a) * r, Y + 2.78 + (i === 0 ? 0.42 : rnd() * 0.45), cz + Math.sin(a) * r, 1.1, 0);
+    }
+    col(cx - 1.1, cx + 1.1, cz - 1.1, cz + 1.1, 3.5, 'tulsi');
+  }
+
+  // ---- plants: leafy mounds dotted with flowers, squeezed to the width of their bed (wx = half width) ----
+  const bush = (x, z, h, wx, leafKey, flowerKey, nFlowers) => {
+    const soil = Y + 0.27;
+    for (const [dz, yy, rr] of [[0, 0.62, 0.36], [-0.27, 0.32, 0.32], [0.27, 0.32, 0.32], [0, 0.3, 0.3]]) {
+      const r = rr * h * (0.9 + rnd() * 0.2);
+      const m = blob(r, leafKey, x + (rnd() - 0.5) * 0.08 * h, soil + yy * h, z + (dz + (rnd() - 0.5) * 0.08) * h);
+      m.scale.x = Math.min(1, wx / r);
+    }
+    for (let i = 0; i < nFlowers; i++) {
+      const a = rnd() * Math.PI * 2, p = 0.2 + rnd() * 1.05;
+      blob(0.075 + rnd() * 0.05, flowerKey, x + Math.cos(a) * Math.sin(p) * wx * 0.92,
+        soil + h * (0.45 + Math.cos(p) * 0.45), z + Math.sin(a) * Math.sin(p) * h * 0.52, 1, 0);
+    }
+  };
+  const KINDS = [
+    ['leafDark', 'flowerRed', 2.6, 10],    // hibiscus
+    ['leaf', 'flowerOrange', 1.25, 14],    // marigold
+    ['leaf', 'flowerPink', 1.8, 8],        // rose
+    ['leafDark', 'flowerWhite', 2.1, 12],  // jasmine
+    ['leaf', 'flowerYellow', 1.25, 14],    // marigold
+  ];
+  const trees = [-8.0, -38.5];
+  let k = 0;
+  for (let z = f0 - 1.8; z > zBack + 0.8; z -= 2.3) {
+    if (z < bench[1] + 0.5 && z > bench[0] - 0.5) continue;
+    if (trees.some((t) => Math.abs(z - t) < 1.1)) continue;
+    const [lf, fl, h, n] = KINDS[k++ % KINDS.length];
+    bush(xIn + 0.66 + (rnd() - 0.5) * 0.1, z + (rnd() - 0.5) * 0.4, h * (0.9 + rnd() * 0.2), 0.72, lf, fl, n);
+  }
+  k = 1;
+  for (let z = f0 - 1.0; z > zBack + 0.7; z -= 2.2) {
+    const [lf, fl, , n] = KINDS[[1, 4, 2][k++ % 3]];
+    bush(-0.53 + (rnd() - 0.5) * 0.06, z + (rnd() - 0.5) * 0.3, 1.2 + rnd() * 0.35, 0.56, lf, fl, n);
+  }
+
+  // ---- two small trees in the boundary bed: a frangipani near the gate, a guava at the back ----
+  // (the canopy is kept above head height and narrower across the garden than along it)
+  const smallTree = (x, z, h, spread, flowers) => {
+    const trunk = new THREE.Mesh(new THREE.CylinderGeometry(0.13, 0.22, h * 0.7, 8), get('treeBark'));
+    trunk.position.set(x, Y + h * 0.35, z);
+    trunk.castShadow = true;
+    house.add(trunk);
+    const top = Y + h * 0.76;
+    for (let i = 0; i < 6; i++) {
+      const a = i * 1.15 + rnd(), r = i === 0 ? 0 : spread * (0.4 + rnd() * 0.25);
+      const m = blob(spread * (0.46 + rnd() * 0.14), i % 2 ? 'treeLeaf2' : 'treeLeaf', x + Math.cos(a) * r * 0.7, top + (i === 0 ? h * 0.08 : rnd() * h * 0.1), z + Math.sin(a) * r);
+      m.scale.x = 0.8;
+    }
+    for (let i = 0; i < flowers; i++) {
+      const a = rnd() * Math.PI * 2, p = 0.3 + rnd() * 0.85, R = spread * 1.0;
+      blob(0.12 + rnd() * 0.05, 'blossom', x + Math.cos(a) * Math.sin(p) * R * 0.75, top + h * 0.05 + Math.cos(p) * R * 0.8, z + Math.sin(a) * Math.sin(p) * R, 1, 0);
+    }
+  };
+  smallTree(xIn + 0.75, trees[0], 10.5, 2.3, 24);
+  smallTree(xIn + 0.75, trees[1], 11.5, 2.6, 0);
+
+  // ---- low garden lights beside the path ----
+  for (const [x, z] of [[PX - 1.55, -9.0], [PX + 1.55, -17.5], [PX - 1.55, -29.0], [PX + 1.55, -37.0]]) {
+    B.box(x - 0.13, x + 0.13, Y, Y + 1.7, z - 0.13, z + 0.13, 'blackMatte');
+    B.box(x - 0.1, x + 0.1, Y + 1.7, Y + 1.95, z - 0.1, z + 0.1, 'lampShade');
+    B.box(x - 0.17, x + 0.17, Y + 1.95, Y + 2.05, z - 0.17, z + 0.17, 'blackMatte');
+    col(x - 0.2, x + 0.2, z - 0.2, z + 0.2, 2.4, 'garden-light');
+  }
+
+  house.add(B.build(get, { name: 'garden' }));
 }
 
 // ---------------------------------------------------------------------------
@@ -601,7 +783,7 @@ function buildSite(ctx) {
     B.box(x0, x1, 0, 5.2, 0.25, 0.85, { all: 'bandWall' });
     B.box(x0 - 0.05, x1 + 0.05, 5.2, 5.5, 0.2, 0.9, 'siteWhite');
   };
-  nWall(-40, -0.4);
+  nWall(-40, GARDEN.x0 - 0.05); // up to the side garden's boundary wall
   nWall(35.8, 76);
   const siteMeshes = B.build(get, { name: 'site', castShadow: false });
   siteMeshes.traverse((o) => o.isMesh && walkables.push(o));
