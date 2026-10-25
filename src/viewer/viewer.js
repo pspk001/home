@@ -29,6 +29,7 @@ export const WALK_SPOTS = {
   toilet2: [30.5, -22.0, 34, -24.4, -0.5],
   puja: [10.2, -44.9, 3.3, -46.0, -0.05],
   stair: [17.6, -6.9, 30, -6.9, 0.05],
+  garden: [-3.94, -2.4, -3.94, -40, 0.06],
   // first floor
   ffLiving: [10.2, -20.4, 2.5, -27.5, -0.1],
   ffDining: [20.6, -19.6, 15.0, -30.0, -0.06],
@@ -49,7 +50,7 @@ const DEFAULT_ROOM = { gf: 'lobby', ff: 'ffDining', roof: 'roof' };
 const VIEWS = {
   exterior: { dir: [-0.6, 0.27, 0.75], target: [17.7, 14.5, -18], rh: 36, rv: 29, cut: Infinity, labels: false },
   dollhouse: { dir: [-0.42, 0.78, 0.47], target: [17.7, 1, -24.5], rh: 28, rv: 28, cut: 9.6, labels: true },
-  plan: { dir: [0, 1, 0.0008], target: [17.7, 2, -24.1], rh: 20.5, rv: 27.5, cut: 6.4, labels: true },
+  plan: { dir: [0, 1, 0.0008], target: [13.2, 2, -24.1], rh: 23.3, rv: 27.5, cut: 6.4, labels: true }, // the house and the side garden
 };
 // dollhouse / plan views of each floor: [target height, section-cut height]
 const FLOOR_VIEWS = {

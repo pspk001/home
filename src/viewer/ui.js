@@ -1,6 +1,6 @@
 import { ALL_ROOMS, WALLS, FLOORS, roomArea, roomAnchor } from '../plan.js';
 import { FF_MAP, ROOF_MAP } from '../plan-ff.js';
-import { LV, PLOT, rearZ } from '../config.js';
+import { LV, PLOT, rearZ, GARDEN, gardenWalls } from '../config.js';
 import { attachJoystick } from './walk.js';
 
 const FINISH = {
@@ -78,7 +78,7 @@ export function initUI(app) {
     $('#ic-name').textContent = room.name;
     $('#ic-level').textContent = floorName(room.floorId);
     $('#ic-size').textContent = room.size;
-    $('#ic-area').textContent = `${Math.round(roomArea(room))} sq ft`;
+    $('#ic-area').textContent = room.areaText || `${Math.round(roomArea(room))} sq ft`;
     $('#ic-floor').textContent = FINISH[room.floor] || '';
     $('#ic-note').textContent = room.note || '';
     $('#ic-walk').hidden = room.id === 'duct';
@@ -136,6 +136,22 @@ export function initUI(app) {
     $('#panel-toggle').setAttribute('aria-expanded', String(open));
   });
 
+  // ---- phones: hide the map and the controls for a full-screen view ---------------------
+  const uiBtn = $('#ui-btn');
+  uiBtn.addEventListener('click', () => {
+    const hide = !document.body.classList.contains('ui-hidden');
+    document.body.classList.toggle('ui-hidden', hide);
+    if (hide) {
+      panel.classList.remove('expanded');
+      $('#panel-toggle').setAttribute('aria-expanded', 'false');
+    }
+    const label = hide ? 'Show the map and controls' : 'Hide the map and controls';
+    uiBtn.setAttribute('aria-pressed', String(hide));
+    uiBtn.setAttribute('aria-label', label);
+    uiBtn.title = label;
+    app.resize(); // re-centre the model in the whole screen (or above the sheet again)
+  });
+
   // ---- save the current view as a PNG ------------------------------------------------
   $('#shot-btn').addEventListener('click', () => {
     const a = document.createElement('a');
@@ -184,7 +200,7 @@ function buildMinimap(app) {
   const host = $('#minimap');
   const NS = 'http://www.w3.org/2000/svg';
   const svg = document.createElementNS(NS, 'svg');
-  svg.setAttribute('viewBox', '-1.5 -50.5 38.5 53');
+  svg.setAttribute('viewBox', '-10.6 -50.5 48 53'); // the plot and the side garden beside it
   svg.setAttribute('role', 'img');
   svg.setAttribute('aria-label', 'Floor plan minimap');
   const el = (tag, attrs, parent = svg) => {
@@ -198,9 +214,10 @@ function buildMinimap(app) {
   // plot outline
   const W = PLOT.width;
   el('polygon', { points: pts([[0, PLOT.rearLeft], [W, PLOT.rearRight], [W, PLOT.plotFront], [0, PLOT.plotFront]]), class: 'mm-plot' });
+  el('rect', { x: GARDEN.x0, y: GARDEN.z0, width: GARDEN.x1 - GARDEN.x0, height: GARDEN.z1 - GARDEN.z0, class: 'mm-plot' });
 
   const LAYERS = {
-    gf: { walls: WALLS.map((w) => [w.x[0], w.x[1], w.z[0], w.z[1]]), polys: [[[0, rearZ(0)], [W, rearZ(W)], [W, rearZ(W) + 0.79], [0, rearZ(0) + 0.79]]], voids: [], rails: [] },
+    gf: { walls: [...WALLS.map((w) => [w.x[0], w.x[1], w.z[0], w.z[1]]), ...gardenWalls()], polys: [[[0, rearZ(0)], [W, rearZ(W)], [W, rearZ(W) + 0.79], [0, rearZ(0) + 0.79]]], voids: [], rails: [] },
     ff: FF_MAP,
     roof: ROOF_MAP,
   };
@@ -242,7 +259,7 @@ function buildMinimap(app) {
   let last = '';
   app.addEventListener('frame', () => {
     const h = app.heading();
-    const x = Math.max(-1, Math.min(36.5, h.walk ? h.x : h.target.x));
+    const x = Math.max(-10, Math.min(36.5, h.walk ? h.x : h.target.x));
     const z = Math.max(-50, Math.min(2, h.walk ? h.z : h.target.z));
     const deg = (-h.yaw * 180) / Math.PI;
     const s = `translate(${x.toFixed(2)} ${z.toFixed(2)}) rotate(${deg.toFixed(1)})`;
@@ -262,5 +279,6 @@ function shortName(room) {
     guest: 'Guest', kitchen: 'Kitchen', toilet1: 'WC', toilet2: 'WC', puja: 'Puja', stair: 'Stair',
     ffLiving: 'Living', ffDining: 'Dining', ffKitchen: 'Kitchen', ffBed3: 'Bed 3', ffBed4: 'Bed 4',
     ffBath4: 'Bath', ffWC: 'WC', ffStair: 'Stair', ffTerrace: 'Terrace', roof: 'Roof terrace', mumty: 'Mumty',
+    garden: 'Garden',
   }[room.id] || room.name;
 }
