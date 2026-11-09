@@ -1,7 +1,8 @@
 import * as THREE from 'three';
 import { RoundedBoxGeometry } from 'three/addons/geometries/RoundedBoxGeometry.js';
 import { extrudeXZ, worldUV } from '../geometry.js';
-import { LV, rearZ, REAR_T, STAIR, STAIR_BATH, GUEST_WR } from '../config.js';
+import { LV, rearZ, REAR_T, STAIR, STAIR_BATH, GUEST_WR, PLOT } from '../config.js';
+const PLOT_W = PLOT.width;
 
 // ---------------------------------------------------------------------------
 // Furniture, placed where the furnished plan shows it (positions converted
@@ -737,19 +738,18 @@ export function buildFurniture(ctx) {
   ceilingFan(28.3, -32.6);
   wallArt(34.53, F + 6.0, -34.3, -Math.PI / 2, 3.2, 1.2, 'art');
 
-  // ---- Guest room: bed against the bathroom wall, the built-in wardrobe in the old shaft
-  //      space on the east wall, TV on the stair wall -------------------------------
-  bed(item(25.0, -17.0), 5.0, 6.0, 'blanketOlive');
-  collide(22.4, 27.6, -20.28, -13.95, 2.2);
-  sideTable(item(21.75, -19.6));
-  sideTable(item(28.15, -19.6));
-  collide(21.1, 22.4, -20.28, -19.0, 2); collide(27.5, 28.75, -20.28, -19.0, 2);
-  tvConsole(item(26.0, -10.3, Math.PI), 4.0);
-  collide(24.0, 28.0, -10.95, -9.635, 1.5);
-  tv(item(26.0, -9.7, Math.PI, F + 4.1), 3.4, 1.95);
-  armchair(item(30.1, -11.6, -2.4), 2.6, 2.4);
-  collide(28.9, 31.3, -12.9, -10.3, 2.8);
-  ceilingFan(25.0, -15.2);
+  // ---- Guest room: bed in the middle of the bathroom wall, TV opposite it in the middle
+  //      of the stair wall, the built-in wardrobe in the old shaft space on the east wall ----
+  const gx = (21.03 + 31.59) / 2;
+  bed(item(gx, -17.0), 5.0, 6.0, 'blanketOlive');
+  collide(gx - 2.6, gx + 2.6, -20.28, -13.95, 2.2);
+  sideTable(item(gx - 3.25, -19.6));
+  sideTable(item(gx + 3.25, -19.6));
+  collide(gx - 3.9, gx - 2.6, -20.28, -19.0, 2); collide(gx + 2.6, gx + 3.9, -20.28, -19.0, 2);
+  tvConsole(item(gx, -10.3, Math.PI), 4.0);
+  collide(gx - 2.0, gx + 2.0, -10.95, -9.635, 1.5);
+  tv(item(gx, -9.7, Math.PI, F + 4.1), 3.4, 1.95);
+  ceilingFan(gx, -15.2);
   // inside the built-in wardrobe: clothes on a rail, folded things on the loft shelf
   closetClothes(GUEST_WR.x0 + 1.25, GUEST_WR.z0 + 0.25, GUEST_WR.z1 - 0.25, 'z');
 
@@ -906,9 +906,6 @@ function firstFloorFurniture() {
     sideTable(item(sx, backAt(sx) + 0.62, slant));
     collide(sx - 0.65, sx + 0.65, backAt(sx), backAt(sx) + 1.2, 2);
   }
-  // wardrobe on the south wall, on the solid stretch between the rear wall and the window into the hall
-  wardrobe(item(10.929, -43.9, -Math.PI / 2), 5.4);
-  collide(9.979, 11.879, -46.6, -41.2, 7.2);
   // armchair further along the south wall, in front of that window, turned to the room
   armchair(item(10.3, -37.5, -2.2), 2.7, 2.5);
   collide(9.0, 11.6, -38.8, -36.2, 2.8);
@@ -939,43 +936,31 @@ function firstFloorFurniture() {
   mesh(cyl(0.07, 0.07, 3.9, 10), 'white', 0.66, F + 7.33, dz, group, { uv: false }).rotation.x = Math.PI / 2;
   ceilingLight(3.4, dz, 0.32);
 
-  // ---- Bedroom 4: bed against the party wall, desk on the dressing-room wall (door to it beside the desk) ----
-  bed(item(31.27, -33.3, -Math.PI / 2), 5.0, 6.1, 'blanketRust');
-  collide(28.2, 34.6, -35.9, -30.7, 2.2);
-  sideTable(item(34.0, -36.6, -Math.PI / 2));
-  sideTable(item(34.0, -30.0, -Math.PI / 2));
-  collide(33.4, 34.65, -37.2, -36.0, 2); collide(33.4, 34.65, -30.6, -29.4, 2);
-  wardrobe(item(27.4, -27.8, Math.PI), 4.0, 7.2, 1.8, 'furnLight');
-  collide(25.4, 29.4, -28.72, -26.88, 7.2);
-  mesh(box(1.2, 1.5, 3.0), 'furnWood', 23.3, F + 0.75, -32.9);
-  tv(item(22.75, -32.9, Math.PI / 2, F + 4.3), 3.2, 1.8);
-  collide(22.67, 23.9, -34.4, -31.4, 1.5);
-  const desk = item(27.0, -36.9);
-  mesh(rbox(3.4, 0.12, 1.75, 0.03), 'furnLight', 0, 2.45, 0, desk);
-  for (const sx of [-1, 1]) mesh(box(0.1, 2.4, 1.6), 'blackMatte', sx * 1.6, 1.2, 0, desk);
-  mesh(box(1.2, 0.8, 0.06), 'screen', -0.5, 2.95, -0.5, desk, { uv: false });
-  chair(item(27.0, -35.5, Math.PI));
-  collide(25.3, 28.7, -37.82, -36.0, 2.6);
-  collide(26.25, 27.75, -36.3, -34.75, 3);
-  ceilingFan(28.8, -33.0);
-  wallArt(34.62, F + 5.8, -33.3, -Math.PI / 2, 3.2, 1.3, 'art');
+  // ---- Bedroom 4: bed in the middle of the party wall, TV opposite it (clothes are in
+  //      the walk-in wardrobe behind) ----
+  const b4 = (-37.821 + -26.882) / 2;
+  bed(item(31.27, b4, -Math.PI / 2), 5.0, 6.1, 'blanketRust');
+  collide(28.2, 34.6, b4 - 2.6, b4 + 2.6, 2.2);
+  sideTable(item(34.0, b4 - 3.3, -Math.PI / 2));
+  sideTable(item(34.0, b4 + 3.3, -Math.PI / 2));
+  collide(33.4, 34.65, b4 - 3.9, b4 - 2.7, 2); collide(33.4, 34.65, b4 + 2.7, b4 + 3.9, 2);
+  mesh(box(1.2, 1.5, 3.0), 'furnWood', 23.3, F + 0.75, b4);
+  tv(item(22.75, b4, Math.PI / 2, F + 4.3), 3.2, 1.8);
+  collide(22.67, 23.9, b4 - 1.5, b4 + 1.5, 1.5);
+  ceilingFan(28.6, b4);
+  wallArt(34.62, F + 5.8, b4, -Math.PI / 2, 3.2, 1.3, 'art');
 
   dressingRoom(slant);
 
-  // ---- Bathroom 4 and the common toilet ----
-  wcUnit(33.4, -22.4, -Math.PI / 2);
-  collide(32.2, 34.67, -23.05, -21.75, 2);
-  basinUnit(29.8, -21.73, Math.PI);
-  collide(29.0, 30.6, -22.4, -21.07, 3);
-  showerUnit(29.3, -26.5, 0);
-  showerScreen(30.0, -26.45, 30.0, -24.85);
-  ceilingLight(31.5, -23.8, 0.32);
-  wcUnit(26.8, -24.6, -Math.PI / 2);
-  collide(25.6, 28.07, -25.25, -23.95, 2);
-  basinUnit(25.0, -21.73, Math.PI);
-  collide(24.2, 25.8, -22.4, -21.07, 3);
-  showerUnit(23.9, -26.5, 0);
-  ceilingLight(25.4, -23.8, 0.32);
+  // ---- Bathroom (bathroom 4 and the common toilet in one), door from the dining area ----
+  basinUnit(26.6, -21.73, Math.PI);
+  collide(25.8, 27.4, -22.4, -21.07, 3);
+  wcUnit(29.0, -25.26, 0);
+  collide(28.4, 29.6, -26.53, -24.4, 2);
+  showerUnit(PLOT_W - 0.77, -23.8, -Math.PI / 2);
+  showerScreen(31.9, -26.45, 31.9, -23.3);
+  ceilingLight(26.0, -23.8, 0.35);
+  ceilingLight(33.2, -23.8, 0.32);
 
   // ---- Stair landing ----
   plant(18.95, -1.55, 1.0);

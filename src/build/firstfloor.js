@@ -275,16 +275,11 @@ function cladding(B) {
       else B.box(s > 0 ? c : c - t, s > 0 ? c + t : c, c0, c1, a, b, mat);
     }
   };
-  // Bathroom 4 (x 28.422..34.667, z -26.53..-21.074): WC on the party wall
-  face('x', 28.422, 1, -26.53, -21.074, 'bathWall');
-  face('x', PLOT.width - 0.75, -1, -26.53, -21.074, 'bathAccent');
-  face('z', -26.53, 1, 28.422, PLOT.width - 0.75, 'bathWall', [door(30.1, 32.85)]);
-  face('z', -21.074, -1, 28.422, PLOT.width - 0.75, 'bathWall', [vent(32.6, 34.2)]);
-  // Common toilet (x 22.674..28.07, z -26.53..-21.074)
+  // Bathroom (x 22.674..34.667, z -26.53..-21.074): door from the dining area, shower on the party wall
   face('x', 22.674, 1, -26.53, -21.074, 'bathWall', [door(-25.35, -22.6)]);
-  face('x', 28.07, -1, -26.53, -21.074, 'bathAccent');
-  face('z', -26.53, 1, 22.674, 28.07, 'bathWall');
-  face('z', -21.074, -1, 22.674, 28.07, 'bathWall');
+  face('x', PLOT.width - 0.75, -1, -26.53, -21.074, 'bathAccent');
+  face('z', -26.53, 1, 22.674, PLOT.width - 0.75, 'bathWall');
+  face('z', -21.074, -1, 22.674, PLOT.width - 0.75, 'bathWall', [vent(32.6, 34.2)]);
   // Kitchen dado: band above the L-shaped counter
   const k0 = FL + 2.9, k1 = FL + 5.2;
   face('z', -20.282, 1, 22.674, 31.59, 'kitchenDado', [], k0, k1);

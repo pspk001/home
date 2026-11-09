@@ -1,6 +1,6 @@
 import * as THREE from 'three';
 import { Batcher, extrudeXZ, regroup, roundedRect, worldUV } from '../geometry.js';
-import { LV, PLOT, rearZ, REAR_T, VOID, BAY, REAR_COLS, REAR_COL_D, voidOutline, DUCT, ductOutline, inDuct, STAIR, GARDEN, gardenWalls } from '../config.js';
+import { LV, PLOT, rearZ, REAR_T, VOID, BAY, SUNROOF, REAR_COLS, REAR_COL_D, voidOutline, DUCT, ductOutline, inDuct, STAIR, GARDEN, gardenWalls } from '../config.js';
 import { makeLeaf } from './openings.js';
 
 // ---------------------------------------------------------------------------
@@ -207,12 +207,49 @@ export function buildExterior(ctx) {
   roof.name = 'roof';
   roof.castShadow = roof.receiveShadow = true;
   house.add(roof);
-  // solid roof over the double-height space, its soffit left as board-formed concrete
-  const vroof = new THREE.Mesh(extrudeXZ(vp, [], FF1, LV.roof), [get('terrace'), get('concreteCeil'), get('slabEdge')]);
+  // solid roof over the double-height space, its soffit left as board-formed concrete,
+  // with a glass sunroof along the rear wall over the dining table
+  const { x0: sx0, x1: sx1, z0: sz0, z1: sz1, curb } = SUNROOF;
+  const skyHole = [[sx0, sz1], [sx1, sz1], [sx1, sz0], [sx0, sz0]];
+  const vroof = new THREE.Mesh(extrudeXZ(vp, [skyHole], FF1, LV.roof), [get('terrace'), get('concreteCeil'), get('concreteCeil')]);
   vroof.name = 'void-roof';
   vroof.castShadow = vroof.receiveShadow = true;
   house.add(vroof);
   for (const m of [roof, vroof]) { m.userData.room = 'roof'; walkables.push(m); pickables.push(m); }
+  {
+    // sunroof: a white curb on the roof round the opening, a teak-framed glazed lid on it
+    // sloping gently to the front so rain runs off, and steel glazing bars
+    const ct = 0.4, R0 = LV.roof, top0 = R0 + curb, top1 = R0 + curb - 0.3; // back / front top of the curb
+    const cb = (xa, xb, za, zb, ha) => B.box(xa, xb, R0, ha, za, zb, { all: 'white', ny: null });
+    cb(sx0 - ct, sx1 + ct, sz0 - ct, sz0, top0);                 // back
+    cb(sx0 - ct, sx1 + ct, sz1, sz1 + ct, top1);                 // front
+    cb(sx0 - ct, sx0, sz0, sz1, top1);                           // sides
+    cb(sx1, sx1 + ct, sz0, sz1, top1);
+    col(sx0 - ct, sx1 + ct, sz0 - ct, sz1 + ct, R0, top0 + 0.2, 'sunroof');
+    // inside the opening: plastered reveal down to the soffit
+    B.box(sx0, sx1, FF1, R0, sz0 - 0.02, sz0, { pz: 'concreteCeil', all: null });
+    // glass lid, tilted from the back curb down to the front curb
+    const gw = sx1 - sx0 + 0.3, gd = Math.hypot(sz1 - sz0 + 0.3, top0 - top1), tilt = Math.atan2(top0 - top1, sz1 - sz0);
+    const lid = new THREE.Group();
+    lid.position.set((sx0 + sx1) / 2, (top0 + top1) / 2 + 0.06, (sz0 + sz1) / 2);
+    lid.rotation.x = tilt;
+    const gl = new THREE.Mesh(new THREE.BoxGeometry(gw, 0.04, gd), get('glass'));
+    gl.castShadow = false;
+    lid.add(gl);
+    const fr = get('doorTeak'), st = get('steel');
+    for (const s of [-1, 1]) {
+      const a = new THREE.Mesh(new THREE.BoxGeometry(gw + 0.2, 0.14, 0.2), fr); a.position.set(0, 0.05, s * (gd / 2 + 0.05)); lid.add(a);
+      const b = new THREE.Mesh(new THREE.BoxGeometry(0.2, 0.14, gd + 0.3), fr); b.position.set(s * (gw / 2 + 0.05), 0.05, 0); lid.add(b);
+    }
+    const nb = 4;
+    for (let i = 1; i < nb; i++) {
+      const m = new THREE.Mesh(new THREE.BoxGeometry(0.08, 0.1, gd), st);
+      m.position.set(-gw / 2 + (gw * i) / nb, 0.05, 0);
+      lid.add(m);
+    }
+    lid.traverse((o) => { if (o.isMesh && o !== gl) { o.castShadow = true; o.receiveShadow = true; } });
+    house.add(lid);
+  }
   // keep the tower facade continuous across the roof-slab edge
   B.box(17.5, 25.3, FF1, LV.roof, -T, 0, { all: 'extTan', ny: null, py: null });
   B.box(25.3, PLOT.width, FF1, LV.roof, -T, 0, { all: 'ext', ny: null, py: null });
