@@ -85,6 +85,10 @@ export const VOID = {
   glassSill: LV.gf + 7.0, // rear wall: solid up to door height, glass above
 };
 
+// Glass sunroof in the roof over the double-height dining area, along the rear wall
+// (x0..x1 / z0..z1: the opening in the roof slab; a curb with a glazed lid rises above it).
+export const SUNROOF = { x0: 12.9, x1: 21.5, z0: -46.55, z1: -42.75, curb: 1.25 };
+
 // The old garden bay, now part of the hall at ground level, single height.
 export const BAY = { x0: 6.643, x1: VOID.x0, zFront: -43.689 };
 
