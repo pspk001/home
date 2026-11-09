@@ -1,6 +1,6 @@
 import * as THREE from 'three';
 import { Batcher, regroup, worldUV } from '../geometry.js';
-import { LV, STAIR, rearZ, PLOT } from '../config.js';
+import { LV, STAIR, rearZ, PLOT, GUEST_WR } from '../config.js';
 import { FF_WALLS, FF_DOORS, FF_OPENING, FF_ROOMS } from '../plan-ff.js';
 import { makeLeaf } from './openings.js';
 import { stairRail } from './structure.js';
@@ -288,7 +288,7 @@ function cladding(B) {
   // Kitchen dado: band above the L-shaped counter
   const k0 = FL + 2.9, k1 = FL + 5.2;
   face('z', -20.282, 1, 22.674, 31.59, 'kitchenDado', [], k0, k1);
-  face('x', 31.59, -1, -20.282, -10.6, 'kitchenDado', [[-17.0, -13.0, FF0 + 3.5, FF0 + 7]], k0, k1);
+  face('x', 31.59, -1, -20.282, GUEST_WR.z0 - 0.05, 'kitchenDado', [[-18.6, -15.4, FF0 + 3.5, FF0 + 7]], k0, k1);
 }
 
 // ---------------------------------------------------------------------------

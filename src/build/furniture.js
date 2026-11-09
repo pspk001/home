@@ -1,7 +1,7 @@
 import * as THREE from 'three';
 import { RoundedBoxGeometry } from 'three/addons/geometries/RoundedBoxGeometry.js';
 import { extrudeXZ, worldUV } from '../geometry.js';
-import { LV, rearZ, REAR_T } from '../config.js';
+import { LV, rearZ, REAR_T, STAIR, STAIR_BATH, GUEST_WR } from '../config.js';
 
 // ---------------------------------------------------------------------------
 // Furniture, placed where the furnished plan shows it (positions converted
@@ -270,6 +270,99 @@ function curtains(axis, face, a, b, dir, mat = 'sofa') {
   if (axis === 'x') rod.position.set((a + b) / 2, F + 7.85, off);
   else { rod.position.set(off, F + 7.85, (a + b) / 2); rod.rotation.set(Math.PI / 2, 0, 0); }
   group.add(rod);
+}
+
+// ---------------------------------------------------------------------------
+// Wardrobes you can see into: clothes on a rail, folded things on shelves
+// ---------------------------------------------------------------------------
+const GARMENTS = ['blanketBlue', 'sheet', 'blanketMaroon', 'curtainBeige', 'blanketSage', 'sofa', 'blanketRust', 'pillow', 'curtainBlue', 'blanketOlive'];
+/** Clothes hanging on a rail (at height F + 6.3) from a to b along axis 'x' or 'z', at plane coordinate c. */
+function closetClothes(c, a, b, axis) {
+  const rod = mesh(cyl(0.04, 0.04, b - a, 8), 'chrome', 0, F + 6.3, 0, group, { uv: false });
+  if (axis === 'z') { rod.rotation.x = Math.PI / 2; rod.position.set(c, F + 6.3, (a + b) / 2); }
+  else { rod.rotation.z = Math.PI / 2; rod.position.set((a + b) / 2, F + 6.3, c); }
+  let i = 0;
+  for (let u = a + 0.2; u < b - 0.1; u += 0.32, i++) {
+    const len = [3.2, 2.4, 3.6, 2.8, 2.2][i % 5];
+    const g = rbox(0.12, len, 1.45, 0.05);
+    const m = mesh(g, GARMENTS[(i * 3) % GARMENTS.length], 0, 0, 0, group, { uv: false });
+    if (axis === 'z') m.position.set(c, F + 6.15 - len / 2, u);
+    else { m.position.set(u, F + 6.15 - len / 2, c); m.rotation.y = Math.PI / 2; }
+  }
+}
+/** Open wardrobe unit (no doors), back on local -z: hanging sections, shelves and drawers. */
+function openCloset(g, w, h = 7.8, d = 1.9) {
+  const n = Math.max(2, Math.round(w / 2.6)), sw = w / n;
+  mesh(box(w, h, 0.06), 'laminate', 0, h / 2, -d / 2 + 0.03, g);         // back panel
+  mesh(box(w, 0.1, d), 'laminate', 0, h - 0.05, 0, g);                   // top
+  mesh(box(w, 0.3, d - 0.1), 'laminateGrey', 0, 0.15, -0.05, g);         // plinth
+  for (let i = 0; i <= n; i++) mesh(box(0.08, h, d), 'laminate', -w / 2 + i * sw, h / 2, 0, g);
+  for (let i = 0; i < n; i++) {
+    const x0 = -w / 2 + i * sw + 0.04, x1 = x0 + sw - 0.08, cx = (x0 + x1) / 2;
+    mesh(box(sw - 0.08, 0.06, d - 0.1), 'laminate', cx, h - 1.0, 0, g); // loft shelf
+    for (let k = 0; k < 3; k++) mesh(rbox(0.6, 0.3, 0.9, 0.08), GARMENTS[(i * 2 + k) % GARMENTS.length], x0 + 0.45 + k * (sw - 0.98) / 2, h - 0.8, 0, g, { uv: false });
+    if (i % 2 === 0) {
+      // hanging section over a block of drawers
+      mesh(box(sw - 0.08, 1.4, d - 0.1), 'laminate', cx, 1.0, 0, g);
+      for (const y of [0.75, 1.25]) mesh(box(sw - 0.3, 0.03, 0.02), 'laminateGrey', cx, y, d / 2 - 0.04, g, { uv: false });
+      mesh(box(0.5, 0.05, 0.05), 'brass', cx, 1.0, d / 2, g, { uv: false });
+      const rod = mesh(cyl(0.04, 0.04, sw - 0.1, 8), 'chrome', cx, h - 1.35, 0, g, { uv: false });
+      rod.rotation.z = Math.PI / 2;
+      let j = 0;
+      for (let u = x0 + 0.18; u < x1 - 0.1; u += 0.3, j++) {
+        const len = [3.0, 2.3, 3.4, 2.6][j % 4];
+        mesh(rbox(0.12, len, 1.4, 0.05), GARMENTS[(i + j * 3) % GARMENTS.length], u, h - 1.5 - len / 2, 0, g, { uv: false });
+      }
+    } else {
+      // shelves of folded clothes and shoe racks at the bottom
+      for (let k = 1; k <= 5; k++) {
+        const y = 0.3 + k * 1.05;
+        mesh(box(sw - 0.08, 0.06, d - 0.1), 'laminate', cx, y, 0, g);
+        if (k < 5) for (let q = 0; q < 2; q++) mesh(rbox(0.7, 0.32, 1.0, 0.08), GARMENTS[(i + k + q * 4) % GARMENTS.length], cx + (q ? 0.5 : -0.5) * (sw - 0.9), y + 0.2, 0, g, { uv: false });
+      }
+      for (let q = 0; q < 3; q++) mesh(rbox(0.35, 0.3, 0.9, 0.08), q % 2 ? 'blackMatte' : 'furnWood', cx - 0.6 + q * 0.6, 0.48, 0.1, g, { uv: false });
+    }
+  }
+}
+
+/** First floor: walk-in wardrobe and dressing room over the ground-floor kitchen. */
+function dressingRoom(slant) {
+  const back = (x) => rearZ(x) + REAR_T;
+  const xw = 22.674, xe = 34.667, zf = -38.321, d = 1.9;
+  // open wardrobes along the back wall and the south wall
+  const bx0 = 22.85, bx1 = xe - d - 0.02, bcx = (bx0 + bx1) / 2;
+  openCloset(item(bcx, back(bcx) + d / 2 + 0.02, slant), bx1 - bx0, 7.8, d);
+  for (let x = bx0; x < bx1; x += 1) colliders.push({ x0: x, x1: Math.min(bx1, x + 1), z0: back(x), z1: back(x) + d + 0.1, y0: F, y1: F + 7.8, id: 'furniture' });
+  const sz0 = back(xe) + 0.02, sz1 = zf - 0.6;
+  openCloset(item(xe - d / 2 - 0.02, (sz0 + sz1) / 2, -Math.PI / 2), sz1 - sz0, 7.8, d);
+  collide(xe - d - 0.05, xe, sz0, sz1, 7.8);
+  // dressing table with a lit mirror against the wall to the double-height hall
+  const dt = item(xw + 0.72, -42.6, Math.PI / 2);
+  mesh(rbox(3.4, 2.5, 1.4, 0.04), 'laminate', 0, 1.25, 0, dt);
+  for (const y of [1.0, 1.7]) mesh(box(3.2, 0.03, 0.02), 'laminateGrey', 0, y, 0.71, dt, { uv: false });
+  mesh(box(3.0, 3.2, 0.06), 'furnWood', 0, 4.4, -0.66, dt);
+  mesh(box(2.7, 2.9, 0.03), 'mirror', 0, 4.4, -0.62, dt, { uv: false });
+  for (let i = 0; i < 6; i++) {
+    for (const sx of [-1.38, 1.38]) mesh(new THREE.SphereGeometry(0.08, 10, 8), 'lampShade', sx, 3.1 + i * 0.52, -0.58, dt, { uv: false, shadow: false });
+  }
+  mesh(cyl(0.6, 0.55, 1.5, 20), 'sofaAccent', 0, 0.75, 1.35, dt, { uv: false }); // stool
+  collide(xw, xw + 1.45, -44.3, -40.9, 2.5);
+  collide(xw + 1.4, xw + 2.7, -43.2, -42.0, 1.5);
+  // upholstered island with drawers in the middle, on a rug
+  rug(28.3, -41.8, 6.6, 4.0);
+  const isl = item(28.3, -41.9);
+  mesh(rbox(4.0, 2.6, 2.1, 0.05), 'laminate', 0, 1.3, 0, isl);
+  mesh(rbox(4.1, 0.12, 2.2, 0.04), 'marble', 0, 2.66, 0, isl);
+  for (const sz of [-1, 1]) for (const y of [0.8, 1.6]) mesh(box(3.6, 0.03, 0.02), 'laminateGrey', 0, y, sz * 1.06, isl, { uv: false });
+  mesh(rbox(1.0, 0.3, 0.7, 0.08), 'blanketRust', -1.1, 2.88, 0, isl, { uv: false });
+  mesh(rbox(0.5, 0.3, 0.35, 0.05), 'blackMatte', 1.2, 2.87, 0.2, isl, { uv: false });
+  collide(26.25, 30.35, -43.0, -40.8, 2.8);
+  // full-length mirror on the wall to bedroom 4
+  const fm = item(30.4, zf - 0.06, Math.PI);
+  mesh(box(2.1, 6.4, 0.08), 'furnWood', 0, 3.5, 0, fm);
+  mesh(box(1.85, 6.1, 0.03), 'mirror', 0, 3.5, 0.05, fm, { uv: false });
+  ceilingLight(25.6, -42.4, 0.35);
+  ceilingLight(31.0, -42.4, 0.35);
 }
 
 // ---------------------------------------------------------------------------
@@ -644,25 +737,68 @@ export function buildFurniture(ctx) {
   ceilingFan(28.3, -32.6);
   wallArt(34.53, F + 6.0, -34.3, -Math.PI / 2, 3.2, 1.2, 'art');
 
-  // ---- Guest room ------------------------------------------------------------
-  bed(item(28.3, -15.98, -Math.PI / 2), 5.0, 6.0, 'blanketOlive');
-  collide(25.3, 31.3, -18.5, -13.45, 2.2);
-  sideTable(item(30.95, -19.1, -Math.PI / 2));
-  sideTable(item(30.95, -12.9, -Math.PI / 2));
-  wardrobe(item(28.55, -10.6, Math.PI), 5.8, 7.2, 1.8, 'furnLight');
-  collide(25.66, 31.45, -11.5, -9.63, 7.2);
-  tv(item(21.12, -15.9, Math.PI / 2, F + 4.3), 3.4, 1.95);
-  ceilingFan(26.3, -15.0);
+  // ---- Guest room: bed against the bathroom wall, the built-in wardrobe in the old shaft
+  //      space on the east wall, TV on the stair wall -------------------------------
+  bed(item(25.0, -17.0), 5.0, 6.0, 'blanketOlive');
+  collide(22.4, 27.6, -20.28, -13.95, 2.2);
+  sideTable(item(21.75, -19.6));
+  sideTable(item(28.15, -19.6));
+  collide(21.1, 22.4, -20.28, -19.0, 2); collide(27.5, 28.75, -20.28, -19.0, 2);
+  tvConsole(item(26.0, -10.3, Math.PI), 4.0);
+  collide(24.0, 28.0, -10.95, -9.635, 1.5);
+  tv(item(26.0, -9.7, Math.PI, F + 4.1), 3.4, 1.95);
+  armchair(item(30.1, -11.6, -2.4), 2.6, 2.4);
+  collide(28.9, 31.3, -12.9, -10.3, 2.8);
+  ceilingFan(25.0, -15.2);
+  // inside the built-in wardrobe: clothes on a rail, folded things on the loft shelf
+  closetClothes(GUEST_WR.x0 + 1.25, GUEST_WR.z0 + 0.25, GUEST_WR.z1 - 0.25, 'z');
 
-  // ---- Kitchen (double height: pendants drop from the roof) ---------------------
+  // ---- Kitchen (normal ceiling now: the dressing room is above it) ---------------
   kitchen();
-  for (const x of [26.0, 29.4]) pendant(x, -41.6, LV.gf + 8.6);
+  ceilingLight(26.0, -42.2, 0.4);
+  ceilingLight(30.4, -42.2, 0.4);
 
-  // ---- Toilets -----------------------------------------------------------------
-  toiletSet(26.8, -23.62, [22.9, -21.7, Math.PI], [25.0, -26.5, 0]);
-  toiletSet(33.3, -23.72, [30.1, -25.9, 0], [32.9, -26.5, 0]);
-  ceilingLight(24.5, -23.8, 0.35);
-  ceilingLight(31.4, -23.8, 0.35);
+  // ---- Bathroom (the two old toilets in one), door from the dining hall ---------------
+  const van = item(26.5, -25.88);
+  mesh(rbox(4.2, 2.45, 1.3, 0.04), 'furnWood', 0, 1.23, 0, van);
+  mesh(box(4.3, 0.1, 1.4), 'graniteBlack', 0, 2.5, 0, van);
+  for (const bxv of [-1.05, 1.05]) {
+    mesh(cyl(0.55, 0.42, 0.35, 24), 'ceramic', bxv, 2.72, 0.05, van, { uv: false });
+    mesh(cyl(0.47, 0.47, 0.02, 24), 'basinInner', bxv, 2.9, 0.05, van, { uv: false });
+    mesh(cyl(0.04, 0.04, 0.6, 8), 'chrome', bxv, 2.85, -0.45, van, { uv: false });
+  }
+  mesh(box(4.0, 2.3, 0.04), 'mirror', 0, 5.0, -0.62, van, { uv: false });
+  collide(24.4, 28.6, -26.53, -25.2, 3);
+  wcUnit(29.8, -22.34, Math.PI);
+  collide(29.15, 30.45, -23.5, -21.07, 2);
+  showerUnit(34.56, -23.8, -Math.PI / 2);
+  showerScreen(31.9, -26.5, 31.9, -23.3);
+  ceilingLight(25.0, -23.8, 0.35);
+  ceilingLight(33.2, -23.8, 0.32);
+
+  // ---- Common bathroom under the stair ----------------------------------------------
+  {
+    const SB = STAIR_BATH;
+    showerUnit(SB.x0 + 0.02, -2.75, Math.PI / 2);
+    showerScreen(18.35, SB.wall[1] + 0.05, 18.35, -2.3);
+    basinUnit(24.3, SB.z1 - 0.64, Math.PI);
+    collide(23.5, 25.1, SB.z1 - 1.3, SB.z1, 3);
+    // WC under the mid landing, on the sunken floor (6′-9″ clear above it)
+    F = LV.gfSunk;
+    wcUnit(32.75, SB.well.z0 + 1.27, 0);
+    collide(32.1, 33.4, SB.well.z0, SB.well.z0 + 2.2, 2);
+    // towel shelf and a plant on the sunken floor along the front wall
+    const sh = item(30.2, SB.z1 - 0.5, Math.PI);
+    mesh(rbox(2.2, 2.6, 0.9, 0.04), 'laminate', 0, 1.3, 0, sh);
+    for (const [yy, mm] of [[1.0, 'sheet'], [1.9, 'blanketSage']]) mesh(rbox(1.8, 0.35, 0.7, 0.1), mm, 0, yy + 0.8, 0.02, sh, { uv: false });
+    collide(29.1, 31.3, SB.z1 - 0.95, SB.z1, 3);
+    F = LV.gf;
+    // lights: under the slab over the shower and basin, and flush under the landing
+    ceilingLight(16.9, -2.75, 0.3);
+    ceilingLight(20.6, -2.75, 0.3);
+    const landBot = LV.gf + 10 * STAIR.rise - SB.landSlab;
+    mesh(cyl(0.3, 0.3, 0.05, 24), 'lightPanel', 32.7, landBot - 0.03, -4.9, group, { uv: false, shadow: false });
+  }
 
   // ---- Puja ---------------------------------------------------------------------
   mandir();
@@ -676,8 +812,7 @@ export function buildFurniture(ctx) {
   ceilingLight(18.1, -14.0, 0.4);
   ceilingLight(16.4, -20.9, 0.4);
   wallArt(16.4, F + 5.4, -22.87, 0, 4.0, 2.0, 'art');
-  plant(16.6, -1.6, 1.1);
-  ceilingLight(19.2, -4.8, 0.4);
+  ceilingLight(19.2, -6.9, 0.4);
 
   // ---- Portico --------------------------------------------------------------------
   suv();
@@ -804,7 +939,7 @@ function firstFloorFurniture() {
   mesh(cyl(0.07, 0.07, 3.9, 10), 'white', 0.66, F + 7.33, dz, group, { uv: false }).rotation.x = Math.PI / 2;
   ceilingLight(3.4, dz, 0.32);
 
-  // ---- Bedroom 4: bed against the party wall, desk under the window into the kitchen void ----
+  // ---- Bedroom 4: bed against the party wall, desk on the dressing-room wall (door to it beside the desk) ----
   bed(item(31.27, -33.3, -Math.PI / 2), 5.0, 6.1, 'blanketRust');
   collide(28.2, 34.6, -35.9, -30.7, 2.2);
   sideTable(item(34.0, -36.6, -Math.PI / 2));
@@ -815,15 +950,17 @@ function firstFloorFurniture() {
   mesh(box(1.2, 1.5, 3.0), 'furnWood', 23.3, F + 0.75, -32.9);
   tv(item(22.75, -32.9, Math.PI / 2, F + 4.3), 3.2, 1.8);
   collide(22.67, 23.9, -34.4, -31.4, 1.5);
-  const desk = item(26.7, -36.9);
-  mesh(rbox(3.8, 0.12, 1.75, 0.03), 'furnLight', 0, 2.45, 0, desk);
-  for (const sx of [-1, 1]) mesh(box(0.1, 2.4, 1.6), 'blackMatte', sx * 1.8, 1.2, 0, desk);
-  mesh(box(1.2, 0.8, 0.06), 'screen', -0.6, 2.95, -0.5, desk, { uv: false });
-  chair(item(26.7, -35.5, Math.PI));
-  collide(24.8, 28.6, -37.82, -36.0, 2.6);
-  collide(25.95, 27.45, -36.3, -34.75, 3);
+  const desk = item(27.0, -36.9);
+  mesh(rbox(3.4, 0.12, 1.75, 0.03), 'furnLight', 0, 2.45, 0, desk);
+  for (const sx of [-1, 1]) mesh(box(0.1, 2.4, 1.6), 'blackMatte', sx * 1.6, 1.2, 0, desk);
+  mesh(box(1.2, 0.8, 0.06), 'screen', -0.5, 2.95, -0.5, desk, { uv: false });
+  chair(item(27.0, -35.5, Math.PI));
+  collide(25.3, 28.7, -37.82, -36.0, 2.6);
+  collide(26.25, 27.75, -36.3, -34.75, 3);
   ceilingFan(28.8, -33.0);
   wallArt(34.62, F + 5.8, -33.3, -Math.PI / 2, 3.2, 1.3, 'art');
+
+  dressingRoom(slant);
 
   // ---- Bathroom 4 and the common toilet ----
   wcUnit(33.4, -22.4, -Math.PI / 2);
@@ -862,7 +999,7 @@ function firstFloorFurniture() {
 
 function ffKitchen() {
   const x0 = 22.674, x1 = 31.59, zr = -20.282, zf = -18.28; // run along the back (north) wall
-  const ex = 29.59, ez = -11.45;                              // run along the shaft (east) wall
+  const ex = 29.59, ez = GUEST_WR.z0 - 0.08;                  // run along the shaft (east) wall, up to the alcove
   const top = (xa, xb, za, zb) => mesh(box(xb - xa, 0.15, zb - za), 'graniteBlack', (xa + xb) / 2, F + 2.825, (za + zb) / 2);
   const cab = (xa, xb, za, zb) => mesh(box(xb - xa, 2.4, zb - za), 'laminateSage', (xa + xb) / 2, F + 1.55, (za + zb) / 2);
   const kick = (xa, xb, za, zb) => mesh(box(xb - xa, 0.35, zb - za), 'blackMatte', (xa + xb) / 2, F + 0.175, (za + zb) / 2);
@@ -889,22 +1026,24 @@ function ffKitchen() {
     for (let x = xa + 1.6; x < xb - 0.3; x += 1.6) mesh(box(0.03, 1.9, 0.02), 'laminateGrey', x, F + 6.0, zr + 1.14, group, { uv: false });
   }
   // sink under the window onto the shaft
-  mesh(box(1.5, 0.04, 2.3), 'steel', 30.6, F + 2.93, -15.0, group, { uv: false });
-  mesh(box(1.0, 0.05, 1.0), 'blackMatte', 30.55, F + 2.955, -15.55, group, { uv: false });
-  mesh(box(1.0, 0.05, 1.0), 'blackMatte', 30.55, F + 2.955, -14.45, group, { uv: false });
-  mesh(cyl(0.05, 0.05, 1.1, 8), 'chrome', 31.3, F + 3.45, -15.0, group, { uv: false });
-  const spout = mesh(cyl(0.04, 0.04, 0.7, 8), 'chrome', 31.0, F + 3.95, -15.0, group, { uv: false });
+  mesh(box(1.5, 0.04, 2.3), 'steel', 30.6, F + 2.93, -17.0, group, { uv: false });
+  mesh(box(1.0, 0.05, 1.0), 'blackMatte', 30.55, F + 2.955, -17.55, group, { uv: false });
+  mesh(box(1.0, 0.05, 1.0), 'blackMatte', 30.55, F + 2.955, -16.45, group, { uv: false });
+  mesh(cyl(0.05, 0.05, 1.1, 8), 'chrome', 31.3, F + 3.45, -17.0, group, { uv: false });
+  const spout = mesh(cyl(0.04, 0.04, 0.7, 8), 'chrome', 31.0, F + 3.95, -17.0, group, { uv: false });
   spout.rotation.z = Math.PI / 2;
-  // fridge at the end of the counter
-  const fr = item(30.55, -10.52, -Math.PI / 2);
+  // fridge and a tall pantry unit in the alcove over the guest room's wardrobe
+  const fr = item(34.05, GUEST_WR.z0 + 1.0, -Math.PI / 2);
   mesh(rbox(1.75, 5.8, 1.9, 0.06), 'steel', 0, 2.9, 0, fr);
   mesh(box(1.7, 0.03, 0.02), 'blackMatte', 0, 3.9, 0.96, fr, { uv: false });
   mesh(box(0.06, 1.4, 0.08), 'blackMatte', -0.7, 4.8, 1.0, fr, { uv: false });
   mesh(box(0.06, 1.6, 0.08), 'blackMatte', -0.7, 2.6, 1.0, fr, { uv: false });
-  collide(29.6, 31.55, -11.4, -9.64, 6);
+  collide(33.05, 35.02, GUEST_WR.z0, GUEST_WR.z0 + 1.9, 6);
+  wardrobe(item(34.05, (GUEST_WR.z0 + 1.95 + GUEST_WR.z1) / 2, -Math.PI / 2), GUEST_WR.z1 - GUEST_WR.z0 - 2.05, 7.2, 1.9, 'laminateSage');
+  collide(33.05, 35.02, GUEST_WR.z0 + 1.95, GUEST_WR.z1, 7.2);
   // a few things on the counter
   mesh(cyl(0.22, 0.22, 0.5, 16), 'pot', 23.6, F + 3.15, -19.5, group, { uv: false });
-  mesh(box(1.1, 0.75, 0.85), 'laminateGrey', 30.6, F + 3.27, -12.6, group, { uv: false });
+  mesh(box(1.1, 0.75, 0.85), 'laminateGrey', 30.6, F + 3.27, -19.2, group, { uv: false });
   ceilingLight(26.6, -15.0, 0.4);
 }
 

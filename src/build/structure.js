@@ -1,6 +1,6 @@
 import * as THREE from 'three';
-import { Batcher, extrudeXZ, regroup } from '../geometry.js';
-import { LV, OPENING, PLOT, rearZ, REAR_T, STAIR, VOID, BAY, REAR_COLS, REAR_COL_D, voidOutline, ductOutline, inDuct } from '../config.js';
+import { Batcher, extrudeXZ, regroup, worldUV } from '../geometry.js';
+import { LV, OPENING, PLOT, rearZ, REAR_T, STAIR, VOID, BAY, REAR_COLS, REAR_COL_D, voidOutline, ductOutline, inDuct, STAIR_BATH, GUEST_WR } from '../config.js';
 import { WALLS, ROOMS } from '../plan.js';
 
 const EXTERIOR = new Set(['ext', 'extTan', 'pPortico', 'siding']);
@@ -137,18 +137,23 @@ export function buildStructure(ctx) {
       colliders.push({ x0: x, x1: xe, z0: Math.min(rearZ(x), rearZ(xe)) - 0.05, z1: Math.max(rearZ(x), rearZ(xe)) + t, y0, y1, id: 'rear' });
     }
   };
-  // (from x 6.643 across the dining area, the old garden and the kitchen, the wall
-  //  is solid up to door height with a granite sill; the glass wall above it is
-  //  built with the first floor in exterior.js)
+  // (from x 6.643 across the dining area and the old garden, the wall is solid up to
+  //  door height with a granite sill; the glass wall above it is built with the first
+  //  floor in exterior.js. Behind the kitchen the wall is solid up to the slab: no
+  //  windows on that side, with the dressing room above.)
   rearWall(0, 6.643, REAR_T, 0, TOP, 'pPuja', ['ext', null]);
   rearWall(6.643, 22.174, REAR_T, 0, VOID.glassSill, 'pHall', [null, null], 'graniteBlack');
-  rearWall(22.174, PLOT.width, REAR_T, 0, VOID.glassSill, 'pKitchen', [null, 'ext'], 'graniteBlack');
+  rearWall(22.174, PLOT.width, REAR_T, 0, VOID.glassSill, 'pKitchen', [null, 'ext'], null);
+  rearWall(REAR_COLS[1][1], PLOT.width, REAR_T, VOID.glassSill, TOP, 'pKitchen', [null, 'ext'], null);
 
   // exposed-concrete downstand beams along the edges of the first-floor slab round the
   // double-height space: on grid F (columns F2 to F5) across the hall, and on grid 2
   // between the old garden bay and the dining area (rear-wall column to D2)
   B.box(VOID.x0, VOID.hallX1, TOP - 1.0, TOP, VOID.hallFront, VOID.hallFront + 0.792, { all: 'concreteCeil', nx: null, px: null, py: null });
   B.box(REAR_COLS[0][0], VOID.x0, TOP - 1.0, TOP, rearZ(VOID.x0) + REAR_COL_D, BAY.zFront, { all: 'concreteCeil', nz: null, pz: null, py: null });
+  // …and on grid 5, between the dining area and the kitchen (rear-wall column B5 to C8),
+  // under the dressing room's wall
+  B.box(REAR_COLS[1][0], REAR_COLS[1][1], TOP - 1.0, TOP, rearZ(REAR_COLS[1][1]) + REAR_COL_D, -38.321, { all: 'concreteCeil', nz: null, pz: null, py: null });
 
   // ---- bathroom wall tiles & kitchen dado ------------------------------------
   cladding(B, ctx);
@@ -157,9 +162,9 @@ export function buildStructure(ctx) {
 
   // ---- room floors (separate meshes so rooms can be picked) -----------------
   for (const room of ROOMS) {
-    const y = LV[room.level];
     const RB = new Batcher();
-    for (const [x0, x1, z0, z1] of room.rects) {
+    for (const [x0, x1, z0, z1, yr] of room.rects) {
+      const y = yr ?? LV[room.level]; // a rectangle may give its own floor height (sunken floor, steps)
       if (room.rear && z0 < rearZ(x0) + 1) {
         const za = rearZ(x0) + 0.05, zb = rearZ(x1) + 0.05;
         RB.prism([[x0, z1], [x1, z1], [x1, zb], [x0, za]], 0, y, { top: room.floor, bottom: null, sides: [null, null, null, null] });
@@ -232,16 +237,27 @@ function cladding(B, ctx) {
       else B.box(s > 0 ? c : c - t, s > 0 ? c + t : c, c0, c1, a, b, mat);
     }
   };
-  // Common toilet (x 21.03..28.07, z -26.53..-21.074) — door on the left wall
-  face('z', -26.53, +1, 21.03, 28.07, 'bathWall');
-  face('z', -21.074, -1, 21.03, 28.07, 'bathWall');
+  // Bathroom (the two old toilets in one: x 21.03..34.581, z -26.53..-21.074) — door from
+  // the dining hall on the west wall, shower at the east end beside the ventilator
+  face('z', -26.53, +1, 21.03, 34.581, 'bathWall');
+  face('z', -21.074, -1, 21.03, 34.581, 'bathWall', [[32.602, 34.185, LV.gf + 6, LV.gf + 7.5]]);
   face('x', 21.03, +1, -26.53, -21.074, 'bathWall', [[-26.266, -23.45, LV.gf, LV.gf + 7]]);
-  face('x', 28.07, -1, -26.53, -21.074, 'bathAccent');
-  // Attached toilet (x 28.422..34.581) — door + ventilator on the front wall
-  face('z', -26.53, +1, 28.422, 34.581, 'bathWall');
-  face('z', -21.074, -1, 28.422, 34.581, 'bathWall', [[28.774, 31.59, LV.gf, LV.gf + 7], [32.602, 34.185, LV.gf + 6, LV.gf + 7.5]]);
-  face('x', 28.422, +1, -26.53, -21.074, 'bathWall');
   face('x', 34.581, -1, -26.53, -21.074, 'bathAccent');
+
+  // Common bathroom under the stair: tiled from the sunken floor up to 7 ft above the
+  // ground floor, and up to just under the landing over the sunken part
+  {
+    const SBt = STAIR_BATH, lo = LV.gfSunk, hiA = LV.gf + 7, hiB = LV.gf + 10 * STAIR.rise - SBt.landSlab - 0.25;
+    const xs = SBt.steps[2], wx = SBt.well.x0 + 0.25;
+    face('z', SBt.wall[1], +1, SBt.x0, xs, 'bathWall', [[SBt.door[0], SBt.door[1], lo, LV.gf + 7]], lo, hiA);
+    face('z', SBt.wall[1], +1, xs, SBt.well.x0, 'bathWall', [], lo, hiB);
+    face('z', SBt.z1, -1, SBt.x0, xs, 'bathWall', [[19.798, 22.79, LV.gf + 4.9, LV.gf + 10.9]], lo, hiA);
+    face('z', SBt.z1, -1, xs, SBt.x1, 'bathWall', [], lo, hiB);
+    face('x', SBt.x0, +1, SBt.wall[1], SBt.z1, 'bathAccent', [], lo, hiA);
+    face('x', SBt.x1, -1, SBt.well.z0, SBt.z1, 'bathAccent', [], lo, hiB);
+    face('z', SBt.well.z0, +1, wx, SBt.x1, 'bathWall', [], lo, hiB);
+    face('x', wx, +1, SBt.well.z0, SBt.wall[0], 'bathWall', [], lo, hiB);
+  }
 
   // Kitchen dado: 2' band above the counter on the rear (slanted) and right walls
   const k0 = LV.gf + 2.9, k1 = LV.gf + 5.2;
@@ -266,10 +282,10 @@ function buildStair(ctx) {
     B.box(xa, xb, LV.gf - 0.1, top, f1[0], f1[1], treadMat);
     colliders.push({ x0: xa, x1: xb, z0: f1[0], z1: f1[1], y0: LV.gf, y1: top, id: 'stair' });
   }
-  // Mid landing
-  const landTop = LV.gf + 10 * S.rise;
-  B.box(S.landingX, S.x1, LV.gf - 0.1, landTop, S.z0, S.z1, { py: 'graniteGrey', nx: 'marble', all: null });
-  colliders.push({ x0: S.landingX, x1: S.x1, z0: S.z0, z1: S.z1, y0: LV.gf, y1: landTop, id: 'landing' });
+  // Mid landing: a slab, with the common bathroom's WC under it
+  const landTop = LV.gf + 10 * S.rise, landBot = landTop - STAIR_BATH.landSlab;
+  B.box(S.landingX, S.x1, landBot, landTop, S.z0, S.z1, { py: 'graniteGrey', nx: 'marble', ny: 'reveal', all: null });
+  colliders.push({ x0: S.landingX, x1: S.x1, z0: S.z0, z1: S.z1, y0: landBot, y1: landTop, id: 'landing' });
 
   // Flight 2: rises westwards on a sloping waist slab (open space beneath)
   const waist = 0.75;
@@ -310,12 +326,40 @@ function buildStair(ctx) {
   stairGroup.traverse((o) => o.isMesh && walkables.push(o));
   house.add(stairGroup);
 
-  // Railings (steel posts + teak handrail) along the inner edges of both flights
+  // Railing (steel posts + teak handrail) along the inner edge of flight 2; beside flight 1
+  // the common bathroom's wall rises up to the soffit of flight 2, so it needs none
   const rail = new THREE.Group();
   rail.name = 'stair-railing';
-  stairRail(mats, rail, -4.9, S.firstRiser + S.tread * 0.5, S.landingX - S.tread * 0.5, LV.gf + S.rise, landTop - S.rise * 0.5);
   stairRail(mats, rail, -4.75, S.landingX - S.tread * 0.5, S.firstRiser + S.tread * 0.5, landTop + S.rise, LV.ff - S.rise * 0.5);
   house.add(rail);
+
+  // ---- common bathroom under the stair ----
+  // wall between it and flight 1, under flight 2: its top follows the soffit
+  const [wz0, wz1] = STAIR_BATH.wall;
+  const ws = new THREE.Shape();
+  ws.moveTo(xL, 0); ws.lineTo(xR, 0); ws.lineTo(xR, yR); ws.lineTo(xL, yL); ws.closePath();
+  const wg = new THREE.ExtrudeGeometry(ws, { depth: wz1 - wz0, bevelEnabled: false });
+  wg.translate(0, 0, wz0);
+  worldUV(wg);
+  const wm = new THREE.Mesh(wg, mats.get('pStair'));
+  wm.name = 'stair-bath-wall';
+  wm.castShadow = wm.receiveShadow = true;
+  house.add(wm);
+  // cross wall under the landing, closing it off from the end of flight 1
+  const XB = new Batcher();
+  const cx0 = S.landingX, cx1 = STAIR_BATH.well.x0 + 0.25;
+  XB.box(cx0, cx1, 0, landBot, S.z0, wz0, { nx: 'marble', px: 'pToilet', all: null });
+  colliders.push({ x0: cx0, x1: cx1, z0: S.z0, z1: wz0, y0: 0, y1: landBot, id: 'stair-bath' });
+  // risers of the three steps down to the sunken floor (with a granite nosing on each)
+  STAIR_BATH.steps.forEach((x, i) => {
+    const yTop = LV.gf - i * 0.5, yBot = yTop - 0.5;
+    XB.box(x - 0.03, x, yBot, yTop, wz1, STAIR_BATH.z1, { px: 'tileBath', all: null });
+    XB.box(x - 0.1, x + 0.02, yTop - 0.04, yTop + 0.005, wz1, STAIR_BATH.z1, { py: 'graniteBlack', px: 'graniteBlack', all: null });
+  });
+  // the guest room's built-in wardrobe (in the front end of the old shaft): floor and loft shelf
+  XB.box(GUEST_WR.x0, GUEST_WR.x1, 0, LV.gf + 0.04, GUEST_WR.z0, GUEST_WR.z1, { py: 'laminate', all: null });
+  XB.box(GUEST_WR.x0, GUEST_WR.x1, LV.gf + 6.05, LV.gf + 6.15, GUEST_WR.z0, GUEST_WR.z1, { py: 'laminate', ny: 'laminate', nx: 'laminate', all: null });
+  house.add(XB.build((k) => mats.get(k), { name: 'stair-bath-walls' }));
 
   // central collider between the flights, at every level (the stair carries on to the roof)
   colliders.push({ x0: S.firstRiser, x1: S.landingX, z0: -4.97, z1: -4.68, y0: 0, y1: 40, id: 'stair-mid' });

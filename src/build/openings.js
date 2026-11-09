@@ -82,6 +82,27 @@ export function buildOpenings(ctx) {
         continue;
       }
 
+      // built-in wardrobe: laminate shutters flush with the room face, with a loft above
+      if (o.t === 'wr') {
+        const room0 = !OUTER.has(w.s0); // shutters on the s0 side
+        const c0 = room0 ? t0 + 0.02 : t1 - 0.1, c1 = c0 + 0.08;
+        const n = Math.max(2, Math.round(width / 1.6));
+        const loft = sill + 6.1;
+        const sw = width / n;
+        for (let i = 0; i < n; i++) {
+          bx(lo + i * sw + 0.01, lo + (i + 1) * sw - 0.01, sill + 0.3, loft - 0.01, c0, c1, 'laminate');
+          bx(lo + i * sw + 0.01, lo + (i + 1) * sw - 0.01, loft + 0.01, head - 0.01, c0, c1, 'laminate');
+          const hx = i % 2 ? lo + i * sw + 0.2 : lo + (i + 1) * sw - 0.2;
+          const hc = room0 ? c0 - 0.03 : c1 + 0.03;
+          bx(hx - 0.03, hx + 0.03, sill + 3.0, sill + 4.4, hc - 0.03, hc + 0.03, 'brass');
+        }
+        bx(lo, hi, sill, sill + 0.3, c0 + 0.03, c1, 'laminateGrey'); // plinth
+        colliders.push(vertical
+          ? { x0: t0, x1: t1, z0: lo, z1: hi, y0: sill, y1: head, id: 'wardrobe' }
+          : { x0: lo, x1: hi, z0: t0, z1: t1, y0: sill, y1: head, id: 'wardrobe' });
+        continue;
+      }
+
       // invisible walkable threshold so walk-mode can pass through doorways
       if (o.t === 'door' || o.t === 'main' || o.t === 'arch') {
         const th = new THREE.Mesh(new THREE.PlaneGeometry(1, 1), thresholdMat);

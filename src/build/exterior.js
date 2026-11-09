@@ -130,15 +130,16 @@ export function buildExterior(ctx) {
   wallRun(B, { x: [25.3, PLOT.width], z: [-T, 0], y0: FF0, y1: FF1, s0: 'pStair', s1: 'ext' }, colliders);
   // glass railing on grid F, where the dining area overlooks the double-height space
   buildVoidRailing(B, col);
-  // slanted rear wall. Behind the dining area and the kitchen it is a glass wall
-  // (buildGlassWall); over the puja room and the old garden bay it is bedroom 3's wall.
+  // slanted rear wall. Behind the dining area it is a glass wall (buildGlassWall); over
+  // the puja room and the old garden bay it is bedroom 3's wall, and over the kitchen
+  // the dressing room's (solid: no windows on the kitchen side).
   // endA / endB: face at the run's start / end (null where it abuts the glass wall)
-  const rearRun = (xa, xb, wins, endA = 'ext', endB = 'ext') => {
+  const rearRun = (xa, xb, wins, endA = 'ext', endB = 'ext', inner = 'pFFBed3') => {
     let cur = xa;
     const seg = (p, q, y0, y1, ends = 'ext') => {
       const pts = [[p, rearZ(p) + REAR_T], [q, rearZ(q) + REAR_T], [q, rearZ(q)], [p, rearZ(p)]];
       const [e0, e1] = Array.isArray(ends) ? ends : [ends, ends];
-      B.prism(pts, y0, y1, { top: 'ext', bottom: 'reveal', sides: ['pFFBed3', e1, 'ext', e0] });
+      B.prism(pts, y0, y1, { top: 'ext', bottom: 'reveal', sides: [inner, e1, 'ext', e0] });
     };
     for (let x = xa; x < xb - 1e-3; x += 1) {
       const xe = Math.min(xb, x + 1);
@@ -188,6 +189,7 @@ export function buildExterior(ctx) {
     seg(cur, xb, FF0, FF1, [cur === xa ? endA : null, endB]);
   };
   rearRun(0, REAR_COLS[0][0], [[1.3, 3.0], [8.2, 9.9]], 'ext', null);
+  rearRun(REAR_COLS[1][1], PLOT.width, [], null, 'ext', 'pFFDress');
   buildGlassWall(B);
   for (const [a, b] of REAR_COLS) col(a, b, rearZ(a) - 0.05, rearZ(b) + REAR_COL_D, FF0, FF1, 'rear');
 
@@ -223,7 +225,8 @@ export function buildExterior(ctx) {
   parapet(0, pt, rearZ(0), -18.039);
   parapet(0, 17.5, -18.039 - pt, -18.039);
   parapet(17.5, 17.5 + pt, -18.039, -9.635);
-  parapet(PLOT.width - pt, PLOT.width, rearZ(PLOT.width), DUCT.z0 - pt); // then round the pipe line shaft (buildDuctShaft)
+  parapet(PLOT.width - pt, PLOT.width, rearZ(PLOT.width), DUCT.z0 - pt); // then round the pipe line shaft (buildDuctShaft)…
+  parapet(PLOT.width - pt, PLOT.width, DUCT.z1 + pt, -9.635);              // …and on to the mumty
   const rearPar = (xa, xb) => {
     B.prism([[xa, rearZ(xa) + pt], [xb, rearZ(xb) + pt], [xb, rearZ(xb)], [xa, rearZ(xa)]], P0, P1, { top: 'white', bottom: null, sides: ['ext', 'ext', 'ext', 'ext'] });
     for (let x = xa; x < xb - 1e-3; x += 1) {
@@ -611,19 +614,23 @@ function buildVoidRailing(B, col) {
 function buildDuctShaft(B, pt, col) {
   const { x0, x1, z0, z1 } = DUCT;
   const D = 'pDuct', W = PLOT.width;
-  // parapet on three sides (the mumty wall closes the front), sage outside,
-  // plastered inside like the shaft, with a white coping
+  // parapet on all four sides (the shaft stops short of the mumty, in front of it is the
+  // roof over the first-floor kitchen's alcove), sage outside, plastered inside like the
+  // shaft, with a white coping
   const P0 = LV.roof, P1 = LV.parapet - 0.25;
   const cap = (xa, xb, za, zb) => B.box(xa - 0.05, xb + 0.05, P1, LV.parapet, za - 0.05, zb + 0.05, 'white');
-  B.box(x0 - pt, x0, P0, P1, z0 - pt, z1, { all: 'ext', px: D, pz: null, py: null, ny: null });
+  B.box(x0 - pt, x0, P0, P1, z0 - pt, z1 + pt, { all: 'ext', px: D, py: null, ny: null });
   B.box(x0, x1, P0, P1, z0 - pt, z0, { all: 'ext', pz: D, nx: null, px: null, py: null, ny: null });
-  B.box(x1, W, P0, P1, z0 - pt, z1, { all: 'ext', nx: D, nz: null, pz: null, py: null, ny: null });
-  cap(x0 - pt, x0, z0 - pt, z1);
+  B.box(x0, x1, P0, P1, z1, z1 + pt, { all: 'ext', nz: D, nx: null, px: null, py: null, ny: null });
+  B.box(x1, W, P0, P1, z0 - pt, z1 + pt, { all: 'ext', nx: D, py: null, ny: null });
+  cap(x0 - pt, x0, z0 - pt, z1 + pt);
   cap(x0, x1, z0 - pt, z0);
-  cap(x1, W, z0 - pt, z1);
-  col(x0 - pt, x0, z0 - pt, z1, P0, LV.parapet, 'parapet');
+  cap(x0, x1, z1, z1 + pt);
+  cap(x1, W, z0 - pt, z1 + pt);
+  col(x0 - pt, x0, z0 - pt, z1 + pt, P0, LV.parapet, 'parapet');
   col(x0, x1, z0 - pt, z0, P0, LV.parapet, 'parapet');
-  col(x1, W, z0 - pt, z1, P0, LV.parapet, 'parapet');
+  col(x0, x1, z1, z1 + pt, P0, LV.parapet, 'parapet');
+  col(x1, W, z0 - pt, z1 + pt, P0, LV.parapet, 'parapet');
 }
 
 /** The mumty's door out onto the roof: teak-look frame, threshold and a leaf swung open outwards. */
@@ -648,16 +655,14 @@ function mumtyDoor(B, [a, b], y0, z0, z1) {
 }
 
 // ---------------------------------------------------------------------------
-// Glass wall in the rear (east) wall behind the dining area and the kitchen. Below
-// door height the wall is solid (structure.js); from there the glass rises to the
-// roof, crossed by the first-floor slab edge, so the morning sun comes into the
-// double-height space. Two full-height columns stand in it (grid 2 at its left end and
-// B5 on grid 5, between the dining and kitchen bays). The old garden bay, under the
-// first-floor slab, has its own lower window from door height to the ceiling. Teak frames.
+// Glass wall in the rear (east) wall behind the dining area. Below door height the wall
+// is solid (structure.js); from there the glass rises to the roof, crossed by the
+// first-floor slab edge, so the morning sun comes into the double-height space. It stands
+// between two full-height columns (grid 2 and B5 on grid 5); beyond B5 the wall is solid
+// (the kitchen, with the dressing room above). The old garden bay, under the first-floor
+// slab, has its own lower window from door height to the ceiling. Teak frames.
 // ---------------------------------------------------------------------------
 function buildGlassWall(B) {
-  const x1 = PLOT.width;
-  const g1 = VOID.x1 - 0.5;                       // right-hand end of the glazing (corner pier beyond)
   const sill = VOID.glassSill, head = FF1 - 0.7; // bottom / top of the glazing
   const band0 = LV.gfCeil, band1 = FF0;         // first-floor slab edge crossing the glass
   const rail = teak(1, 0), post = teak(0, 1);
@@ -670,12 +675,10 @@ function buildGlassWall(B) {
 
   // columns in the rear wall, from the plinth to the roof slab (the stone plinth runs past them)
   for (const [a, b] of REAR_COLS) B.prism(full(a, b, REAR_COL_D), LV.gf, FF1, { top: null, bottom: null, sides: ['pHall', 'ext', 'ext', 'ext'] });
-  // pier at the right-hand corner, below and above the slab edge
-  B.prism(full(g1, x1), sill, band0, { top: null, bottom: null, sides: ['pHall', 'ext', 'ext', 'ext'] });
-  B.prism(full(g1, x1), band1, FF1, { top: null, bottom: null, sides: ['ffInterior', 'ext', 'ext', 'ext'] });
 
-  // two double-height glazed bays: dining (between the columns on grids 2 and 5) and kitchen
-  for (const [g0, ge] of [[REAR_COLS[0][1], REAR_COLS[1][0]], [REAR_COLS[1][1], g1]]) {
+  // the double-height glazed bay behind the dining area, between the columns on grids 2 and 5
+  {
+    const g0 = REAR_COLS[0][1], ge = REAR_COLS[1][0];
     B.prism(full(g0, ge), head, FF1, { top: null, bottom: 'reveal', sides: ['ffInterior', null, 'ext', null] }); // lintel
     sl(g0, g0 + 0.22, sill, head, c, 0.3, post);
     sl(ge - 0.22, ge, sill, head, c, 0.3, post);
