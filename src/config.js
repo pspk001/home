@@ -13,6 +13,7 @@ export const LV = {
   duct: 1.2,
   garden: 0.3,      // lawn of the side garden (north side), level with the footpath
   gf: 2.0,          // ground-floor finished floor level (2' plinth)
+  gfSunk: 0.5,      // sunken floor of the bathroom under the stairs (3 steps of 6" down)
   gfCeil: 13.0,     // 11' clear height
   ff: 13.5,         // first-floor level (6" slab)
   ffFloor: 13.54,   // finished floor of the first-floor rooms (tiles / boards on the slab)
@@ -33,6 +34,7 @@ export const OPENING = {
   kwin: [LV.gf + 3.5, LV.gf + 7.0],
   vent: [LV.gf + 6.0, LV.gf + 7.5],
   swin: [LV.gf + 4.9, LV.gf + 10.9],
+  wr:   [LV.gf, LV.gf + 7.5],          // built-in wardrobe: shutters flush with the room side
 };
 
 // Plot: 35'-5" wide, 48'-9" deep on the left, 47'-2" on the right (slanted rear)
@@ -70,15 +72,15 @@ export const gardenWalls = () => {
   return [[x0, x0 + t, z0, f1], [x0 + t, x1, z0, z0 + t], [x0 + t, g0, f0, f1], [g1, x1, f0, f1]];
 };
 
-// Double-height space over the dining area, the kitchen and the middle of the hall:
-// there is no first-floor slab here, so it rises to the roof. It reaches forward to
-// the first-floor edge beam on grid F, where a railing overlooks it. The old garden
-// bay beside it keeps a normal ceiling (the first-floor slab runs over it).
+// Double-height space over the dining area and the middle of the hall: there is no
+// first-floor slab here, so it rises to the roof. It reaches forward to the first-floor
+// edge beam on grid F, where a railing overlooks it. The kitchen beside it (grid 5 to
+// the east wall) has a normal ceiling, with the first floor's walk-in wardrobe and
+// dressing room over it; the old garden bay on the other side also keeps a normal ceiling.
 export const VOID = {
   x0: 12.231,        // grid 2: hall side of the bedroom-1 wall, carried on to the rear wall
-  x1: 34.581,        // inside face of the east wall
-  zFront: -38.321,   // line of the kitchen / bedroom-2 wall
-  hallX1: 22.174,    // between the bedroom walls the space reaches further forward over the hall…
+  x1: 22.174,        // grid 5: the kitchen / dining line (the first floor runs over the kitchen)
+  hallX1: 22.174,    // between the bedroom walls the space reaches forward over the hall…
   hallFront: -31.326, // …to the edge beam on grid F (its back face, flush with column F2)
   glassSill: LV.gf + 7.0, // rear wall: solid up to door height, glass above
 };
@@ -97,17 +99,19 @@ export function voidOutline() {
   return [
     [VOID.x0, rearZ(VOID.x0) + REAR_T],
     [VOID.x1, rearZ(VOID.x1) + REAR_T],
-    [VOID.x1, VOID.zFront],
-    [VOID.hallX1, VOID.zFront],
-    [VOID.hallX1, VOID.hallFront],
+    [VOID.x1, VOID.hallFront],
     [VOID.x0, VOID.hallFront],
   ];
 }
 
 // Pipe line area beside the guest room: a plumbing shaft open to the sky, cut
-// through the first-floor slab and the roof as in the original drawing.
+// through the first-floor slab and the roof as in the original drawing. Its front end
+// (towards the stair) is walled off as the guest room's built-in wardrobe.
 // x0..x1 / z0..z1 = inside faces of its walls; wall = thickness of the walls round it.
-export const DUCT = { x0: 32.382, x1: 35.021, z0: -20.282, z1: -9.635, wall: 0.792 };
+export const DUCT = { x0: 32.382, x1: 35.021, z0: -20.282, z1: -14.85, wall: 0.792 };
+// Guest-room wardrobe in the front end of the old shaft: z0..z1 inside (behind a 4½" wall
+// to the shaft), opening into the guest room through the shaft wall (x 31.59..32.382).
+export const GUEST_WR = { x0: DUCT.x0, x1: DUCT.x1, z0: DUCT.z1 + 0.375, z1: -9.635 };
 
 /** Plan outline of the pipe line shaft as [x, z] points. */
 export const ductOutline = () => [[DUCT.x0, DUCT.z1], [DUCT.x1, DUCT.z1], [DUCT.x1, DUCT.z0], [DUCT.x0, DUCT.z0]];
@@ -135,6 +139,19 @@ export const stairWell = () => [[STAIR.firstRiser, STAIR.z0], [STAIR.x1, STAIR.z
 export const floorOf = (y) => (y < LV.ff - 0.6 ? 'gf' : y < LV.roof - 0.6 ? 'ff' : 'roof');
 /** Finished floor height of each floor (where people stand). */
 export const FLOOR_Y = { gf: LV.gf, ff: LV.ffFloor, roof: LV.roof };
+
+// Bathroom under the stair (the area under the second flight and the mid landing): its
+// floor is sunk 1'-6" (3 steps) so there is 6'-9" clear under the landing for the WC.
+// strip: under flight 2 along the front wall; well: under the mid landing; steps: x of
+// the three 6" steps down; wall: the wall between it and flight 1 (z).
+export const STAIR_BATH = {
+  x0: 15.619, x1: 34.581, z0: -4.95, z1: -0.792,
+  wall: [-4.95, -4.70],
+  well: { x0: 30.67, z0: -8.843 },
+  steps: [26.0, 26.85, 27.7],     // tops of the steps start here (x); sunk floor from 27.7
+  door: [18.9, 21.5],             // in its wall to the stair passage
+  landSlab: 0.5,                  // the mid landing becomes a 6" slab over it
+};
 
 export const HOUSE_CENTER = { x: 17.7, z: -24 };
 

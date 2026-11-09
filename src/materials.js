@@ -121,6 +121,8 @@ export class MaterialLibrary {
     paint('accentBed3', 0x6e8697);  // slate-blue wall behind the bed
     paint('pFFBed4', 0xeee3d4);     // warm cream
     paint('accentBed4', 0xb08f72);  // caramel wall behind the bed
+    paint('pFFDress', 0xefe6da);    // walk-in wardrobe and dressing room: soft linen
+    paint('wardrobeIn', 0xe9e2d6);  // inside the guest room's built-in wardrobe
 
     // Exterior finishes from the elevation
     extPaint('ext', COLORS.sage);

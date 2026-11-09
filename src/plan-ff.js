@@ -1,11 +1,12 @@
-import { rearZ, REAR_T, REAR_COL_D, PLOT, DUCT, VOID, REAR_COLS, voidOutline, ductOutline, stairWell } from './config.js';
+import { rearZ, REAR_T, REAR_COL_D, PLOT, DUCT, GUEST_WR, VOID, REAR_COLS, voidOutline, ductOutline, stairWell } from './config.js';
 
 // ---------------------------------------------------------------------------
 // First floor: a 2BHK flat over the ground floor (design proposal, not from the
 // supplied drawings). Partitions sit over the ground-floor walls wherever they can,
 // so loads come straight down: bedroom 3 is over bedroom 1 and the puja room,
-// bedroom 4 over bedroom 2, the kitchen over the guest room and the bathrooms over
-// the ground-floor toilets. The flat is entered from the stair landing; the living
+// bedroom 4 over bedroom 2 (with its walk-in wardrobe and dressing room over the
+// ground-floor kitchen), the kitchen over the guest room and the bathrooms over the
+// ground-floor bathroom. The flat is entered from the stair landing; the living
 // room opens onto the front terrace over the portico, and the dining area looks
 // down into the double-height hall across the glass railing on grid F.
 //
@@ -19,8 +20,8 @@ import { rearZ, REAR_T, REAR_COL_D, PLOT, DUCT, VOID, REAR_COLS, voidOutline, du
 // ---------------------------------------------------------------------------
 
 const W = PLOT.width;
-const L = 'pFFLiving', K = 'pFFKitchen', B3 = 'pFFBed3', B4 = 'pFFBed4', T = 'pToilet', S = 'pStair';
-const E = 'ext', H = 'pHall', KV = 'pKitchen', D = 'pDuct';
+const L = 'pFFLiving', K = 'pFFKitchen', B3 = 'pFFBed3', B4 = 'pFFBed4', DR = 'pFFDress', T = 'pToilet', S = 'pStair';
+const E = 'ext', H = 'pHall', D = 'pDuct';
 
 /** Default sill / head of each opening type, in feet above the first-floor slab. */
 export const FF_OPENING = {
@@ -41,25 +42,31 @@ export const FF_WALLS = [
   { id: 'ffTW-a', x: [17.5, 18.25], z: [-18.039, -9.239], s0: E, s1: L },
   { id: 'ffTW-b', x: [17.5, 18.25], z: [-9.239, -0.75], s0: E, s1: S, open: [{ t: 'gdoor', a: -7.6, b: -4.6, door: 'ffTerr' }] },
   // south (right) party wall; beside the pipe line shaft it is only as thick as the shaft wall below
-  { id: 'ffR-void', x: [W - 0.75, W], z: [rearZ(W), -37.821], s0: KV, s1: E },
+  { id: 'ffR-dress', x: [W - 0.75, W], z: [rearZ(W), -37.821], s0: DR, s1: E },
   { id: 'ffR-bed4', x: [W - 0.75, W], z: [-37.821, -26.706], s0: 'accentBed4', s1: E },
   { id: 'ffR-bath4', x: [W - 0.75, W], z: [-26.706, -21.074], s0: T, s1: E },
-  { id: 'ffR-duct', x: [DUCT.x1, W], z: [-21.074, -8.843], s0: D, s1: E },
+  { id: 'ffR-duct', x: [DUCT.x1, W], z: [-21.074, GUEST_WR.z0], s0: D, s1: E },
+  { id: 'ffR-pantry', x: [DUCT.x1, W], z: [GUEST_WR.z0, -8.843], s0: K, s1: E },
   { id: 'ffR-stair', x: [W - 0.75, W], z: [-8.843, -0.75], s0: S, s1: E },
-  // pipe line shaft (open to the sky): kitchen side, rear (bathroom 4) and front (stair) walls
-  { id: 'ffD-w', x: [DUCT.x0 - DUCT.wall, DUCT.x0], z: [-21.074, -8.843], s0: K, s1: D, ends: [T, S],
-    open: [{ t: 'win', a: -17.0, b: -13.0, sill: 3.5, head: 7.0 }] },
+  // pipe line shaft (open to the sky): kitchen side, rear (bathroom 4) and front walls. In
+  // front of it, over the guest room's wardrobe, the kitchen has an alcove for the fridge
+  // and a tall pantry unit.
+  { id: 'ffD-w', x: [DUCT.x0 - DUCT.wall, DUCT.x0], z: [-21.074, GUEST_WR.z0], s0: K, s1: D, ends: [T, K],
+    open: [{ t: 'win', a: -18.6, b: -15.4, sill: 3.5, head: 7.0 }] },
   { id: 'ffD-r', x: [DUCT.x0, DUCT.x1], z: [-21.074, DUCT.z0], s0: T, s1: D, open: [{ t: 'vent', a: 32.6, b: 34.2 }] },
-  { id: 'ffD-f', x: [DUCT.x0, DUCT.x1], z: [DUCT.z1, -8.843], s0: D, s1: S },
+  { id: 'ffD-f', x: [DUCT.x0, DUCT.x1], z: [DUCT.z1, GUEST_WR.z0], s0: D, s1: K },
 
   // ---- round the double-height space ---------------------------------------------
-  // (teak-framed windows look into it from bedroom 3 and bedroom 4, with sheer curtains)
+  // (teak-framed windows look into it from bedroom 3 and bedroom 4, with sheer curtains;
+  //  the dressing room's wall to it is solid, with the dressing table against it)
   { id: 'ffV-bed3', x: [11.879, VOID.x0], z: [rearZ(VOID.x0) + REAR_COL_D, VOID.hallFront], s0: B3, s1: H, ends: [H, null],
     open: [{ t: 'win', a: -40.4, b: -33.2, sill: 2, head: 8, frame: 'teak', curtain: -1 }] },
-  { id: 'ffV-bed4', x: [VOID.hallX1, 22.674], z: [-37.821, VOID.hallFront], s0: H, s1: B4,
+  { id: 'ffV-dress', x: [VOID.x1, 22.674], z: [rearZ(REAR_COLS[1][1]) + REAR_COL_D, -38.321], s0: H, s1: DR },
+  { id: 'ffV-bed4', x: [VOID.hallX1, 22.674], z: [-38.321, VOID.hallFront], s0: H, s1: B4,
     open: [{ t: 'win', a: -37.0, b: -34.4, frame: 'teak', curtain: 1 }] },
-  { id: 'ffV-front', x: [VOID.hallX1, W - 0.75], z: [VOID.zFront, -37.821], s0: KV, s1: B4, ends: [H, null],
-    open: [{ t: 'win', a: 25.5, b: 30.5, frame: 'teak', curtain: 1 }] },
+  // walk-in wardrobe / dressing room over the ground-floor kitchen, through a door from bedroom 4
+  { id: 'ff-dress-bed4', x: [22.674, W - 0.75], z: [-38.321, -37.821], s0: DR, s1: B4,
+    open: [{ t: 'door', a: 22.95, b: 25.65, door: 'ffDress' }] },
 
   // ---- partitions ----------------------------------------------------------------
   // living room / bedroom 3 (over the bedroom-1 wall)
@@ -76,7 +83,7 @@ export const FF_WALLS = [
   { id: 'ff-wc-kit', x: [22.674, DUCT.x0 - DUCT.wall], z: [-21.074, DUCT.z0], s0: T, s1: K },
   // flat entrance from the stair landing, and the kitchen's front wall
   { id: 'ff-stair-a', x: [18.25, 22.674], z: [-9.635, -8.843], s0: L, s1: S, open: [{ t: 'main', a: 18.75, b: 21.85, door: 'ffMain' }] },
-  { id: 'ff-stair-b', x: [22.674, DUCT.x0 - DUCT.wall], z: [-9.635, -8.843], s0: K, s1: S },
+  { id: 'ff-stair-b', x: [22.674, DUCT.x1], z: [-9.635, -8.843], s0: K, s1: S },
 ];
 
 // Door leaves (same conventions as DOORS in plan.js)
@@ -86,6 +93,7 @@ export const FF_DOORS = {
   ffBed4:  { hinge: 'b', side: 1, style: 'wood' },
   ffWC:    { hinge: 'b', side: 1, style: 'pvc' },
   ffBath4: { hinge: 'b', side: 1, style: 'pvc' },
+  ffDress: { hinge: 'a', side: 0, style: 'wood' },
   ffTerr:  { hinge: 'b', side: 1, style: 'glass' },
 };
 
@@ -98,12 +106,14 @@ export const FF_ROOMS = [
     note: 'Opens onto the front terrace through a sliding glass door. Sofa, armchair and a TV unit that screens the dining area; window to the north.' },
   { id: 'ffDining', name: 'Dining & Entrance', size: '9′-11″ × 12′-6″ + passage', rects: [[VOID.x0, VOID.hallX1, VOID.hallFront, -18.831], [18.25, VOID.hallX1, -18.831, -9.635]], floor: 'tileMarble',
     note: 'Entered from the stair landing through the main door. The 6-seater table looks down into the double-height dining hall across the glass railing. The kitchen, the common toilet and bedroom 4 open off it.' },
-  { id: 'ffKitchen', name: 'Kitchen', size: '8′-11″ × 10′-8″', rects: [[22.674, DUCT.x0 - DUCT.wall, DUCT.z0, -9.635]], floor: 'tileKitchen',
-    note: 'L-shaped granite counter, sink under a window onto the pipe line shaft, hob with chimney, fridge. Opens off the entrance passage through an arch.' },
+  { id: 'ffKitchen', name: 'Kitchen', size: '8′-11″ × 10′-8″ + alcove', rects: [[22.674, DUCT.x0 - DUCT.wall, DUCT.z0, -9.635], [DUCT.x0 - DUCT.wall, DUCT.x1, GUEST_WR.z0, -9.635]], floor: 'tileKitchen',
+    note: 'L-shaped granite counter, sink under a window onto the pipe line shaft, hob with chimney, and an alcove for the fridge and a tall pantry unit. Opens off the entrance passage through an arch.' },
   { id: 'ffBed3', name: 'Bedroom 3', size: '11′-2″ × 16′-9″', rects: [[0.75, 11.879, RZ0, -30.934]], floor: 'wood', rear: true,
     note: 'Master bedroom over bedroom 1 and the puja room, with a study corner open to the room. Queen bed, a wardrobe on the south wall, a dressing table by the door, a work desk under a window looking out to the north, and a bookshelf on the west wall. A large window looks into the double-height hall.' },
   { id: 'ffBed4', name: 'Bedroom 4', size: '12′-0″ × 10′-11″', rects: [[22.674, W - 0.75, -37.821, -26.882]], floor: 'woodLight',
-    note: 'Over bedroom 2. Queen bed, wardrobe, TV and an attached bathroom. Two windows look into the double-height dining hall and kitchen, lit by the rear glass wall.' },
+    note: 'Over bedroom 2. Queen bed, wardrobe, TV, a study desk, an attached bathroom and its own walk-in wardrobe and dressing room behind. A window looks into the double-height dining hall, lit by the rear glass wall.' },
+  { id: 'ffDress', name: 'Walk-in Wardrobe & Dressing', size: '12′-0″ × 8′-3″', rects: [[22.674, W - 0.75, RZ0, -38.321]], floor: 'woodLight', rear: true,
+    note: 'Over the ground-floor kitchen, entered from bedroom 4. Open hanging rails, shelves and drawers along the back and south walls, a dressing table with a lit mirror, a full-length mirror and an upholstered island with drawers.' },
   { id: 'ffBath4', name: 'Bathroom 4', size: '6′-3″ × 5′-6″', rects: [[28.422, W - 0.75, -26.53, -21.074]], floor: 'tileBath',
     note: 'Attached to bedroom 4: WC, wash basin and shower, ventilator to the pipe line shaft.' },
   { id: 'ffWC', name: 'Common Toilet', size: '5′-5″ × 5′-6″', rects: [[22.674, 28.07, -26.53, -21.074]], floor: 'tileBath',
@@ -116,7 +126,7 @@ export const FF_ROOMS = [
 
 export const ROOF_ROOMS = [
   { id: 'roof', name: 'Roof Terrace', size: '34′-6″ × 29′-6″ + 17′-0″ × 8′-10″', floor: 'terrace', rear: true,
-    rects: [[0.45, DUCT.x0 - 0.45, rearZ(0) + 0.45, -18.489], [DUCT.x0 - 0.45, W - 0.45, rearZ(W) + 0.45, DUCT.z0 - 0.45], [17.95, DUCT.x0 - 0.45, -18.489, -9.635]],
+    rects: [[0.45, DUCT.x0 - 0.45, rearZ(0) + 0.45, -18.489], [DUCT.x0 - 0.45, W - 0.45, rearZ(W) + 0.45, DUCT.z0 - 0.45], [17.95, DUCT.x0 - 0.45, -18.489, -9.635], [DUCT.x0 - 0.45, W - 0.45, DUCT.z1 + 0.45, -9.635]],
     note: 'Open roof over the whole house, including the double-height space, behind a 3 ft parapet. The water tank stands near the front and the pipe line shaft opens here behind its own parapet.' },
   { id: 'mumty', name: 'Mumty (Stair Cabin)', size: '16′-5″ × 8′-1″', rects: [[18.25, W - 0.75, -8.843, -0.792]], floor: 'graniteGrey',
     note: 'Stair head room on the roof, with a door out to the roof terrace.' },
@@ -144,8 +154,8 @@ export const FF_MAP = {
 export const ROOF_MAP = {
   walls: [
     [0, 0.45, rearZ(0), -18.039], [0, 17.5, -18.489, -18.039], [17.5, 17.95, -18.039, -9.635],
-    [W - 0.45, W, rearZ(W), DUCT.z0 - 0.45],
-    [DUCT.x0 - 0.45, DUCT.x0, DUCT.z0 - 0.45, DUCT.z1], [DUCT.x0, DUCT.x1, DUCT.z0 - 0.45, DUCT.z0], [DUCT.x1, W, DUCT.z0 - 0.45, DUCT.z1],
+    [W - 0.45, W, rearZ(W), DUCT.z0 - 0.45], [W - 0.45, W, DUCT.z1 + 0.45, -9.635],
+    [DUCT.x0 - 0.45, DUCT.x0, DUCT.z0 - 0.45, DUCT.z1 + 0.45], [DUCT.x0, DUCT.x1, DUCT.z0 - 0.45, DUCT.z0], [DUCT.x0, DUCT.x1, DUCT.z1, DUCT.z1 + 0.45], [DUCT.x1, W, DUCT.z0 - 0.45, DUCT.z1 + 0.45],
     // mumty (with its door at x 19.2 to 22.2)
     [17.5, 19.2, -9.635, -8.843], [22.2, W, -9.635, -8.843], [17.5, 18.25, -8.843, -0.792], [W - 0.75, W, -8.843, -0.792], [17.5, W, -0.792, 0],
     [14.3, 17.5, -22.6, -18.6], // water tank

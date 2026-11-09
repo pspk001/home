@@ -1,4 +1,4 @@
-import { rearZ, REAR_T, DUCT, GARDEN } from './config.js';
+import { rearZ, REAR_T, DUCT, GARDEN, GUEST_WR, STAIR_BATH } from './config.js';
 import { FF_ROOMS, ROOF_ROOMS } from './plan-ff.js';
 
 // ---------------------------------------------------------------------------
@@ -24,7 +24,7 @@ export const WALLS = [
   { id: 'R-bed2', x: [34.581, 35.417], z: [-38.321, -26.882], s0: 'accentBed2', s1: 'ext' },
   { id: 'R-toilet2', x: [34.581, 35.417], z: [-26.882, -20.282], s0: 'pToilet', s1: 'ext' },
   { id: 'R-duct', x: [35.021, 35.417], z: [-20.282, -9.635], s0: 'pDuct', s1: 'ext' },
-  { id: 'R-stair', x: [34.581, 35.417], z: [-9.635, 0.0], s0: 'pStair', s1: 'ext' },
+  { id: 'R-stair', x: [34.581, 35.417], z: [-9.635, 0.0], s0: 'pToilet', s1: 'ext' },
 
   // Puja / old garden / kitchen (rear strip) --------------------------------
   // (the old garden is now part of the hall: the walls between hall, garden and
@@ -41,28 +41,36 @@ export const WALLS = [
   { id: 'K-B2', x: [22.922, 34.581], z: [-38.321, -37.969], s0: 'pKitchen', s1: 'pBed2' },
   { id: 'T-top-a', x: [20.678, 22.174], z: [-26.882, -26.53], s0: 'pHall', s1: 'pToilet' },
   { id: 'T-top-b', x: [22.922, 34.581], z: [-26.882, -26.53], s0: 'pBed2', s1: 'pToilet' },
-  { id: 'T1-left-a', x: [20.678, 21.03], z: [-26.53, -23.098], s0: 'pHall', s1: 'pToilet', open: [{ t: 'door', a: -26.266, b: -23.45, door: 'toilet1' }] },
+  { id: 'T1-left-a', x: [20.678, 21.03], z: [-26.53, -23.098], s0: 'pHall', s1: 'pToilet', open: [{ t: 'door', a: -26.266, b: -23.45, door: 'toilet1' }] }, // the bathroom's door, from the dining hall
   { id: 'T1-left-b', x: [20.678, 21.03], z: [-23.098, -21.074], s0: 'pLobby', s1: 'pToilet' },
   { id: 'C12', x: [20.634, 21.426], z: [-21.074, -20.282], s0: 'pLobby', s1: 'pGuest' },
-  { id: 'T-part', x: [28.07, 28.422], z: [-26.53, -21.074], s0: 'pToilet', s1: 'pToilet' },
-  { id: 'T-bot', x: [21.426, 31.59], z: [-21.074, -20.678], s0: 'pToilet', s1: 'pGuest', open: [{ t: 'door', a: 28.774, b: 31.59, door: 'toilet2' }] },
+  { id: 'T-bot', x: [21.426, 31.59], z: [-21.074, -20.678], s0: 'pToilet', s1: 'pGuest' }, // (old door from the guest room closed)
   { id: 'T2-duct', x: [32.382, 34.581], z: [-21.074, -20.282], s0: 'pToilet', s1: 'pDuct', open: [{ t: 'vent', a: 32.602, b: 34.185 }] },
+  // wall between the shaft and the guest room's wardrobe in its front end
+  { id: 'D-wr', x: [DUCT.x0, DUCT.x1], z: [DUCT.z1, GUEST_WR.z0], s0: 'pDuct', s1: 'wardrobeIn' },
 
   // Guest room / lobby ------------------------------------------------------
-  { id: 'G-right', x: [31.59, 32.382], z: [-21.074, -9.635], s0: 'accentGuest', s1: 'pDuct', open: [{ t: 'win', a: -17.423, b: -12.319 }] },
+  { id: 'G-right', x: [31.59, 32.382], z: [-21.074, GUEST_WR.z0 - 0.375], s0: 'accentGuest', s1: 'pDuct', open: [{ t: 'win', a: -19.4, b: -15.8 }] },
+  { id: 'G-right-wr', x: [31.59, 32.382], z: [GUEST_WR.z0 - 0.375, -9.635], s0: 'accentGuest', s1: 'wardrobeIn', open: [{ t: 'wr', a: GUEST_WR.z0, b: GUEST_WR.z1 }] },
   { id: 'G-left', x: [20.678, 21.03], z: [-20.282, -9.635], s0: 'pLobby', s1: 'pGuest', open: [{ t: 'door', a: -13.595, b: -10.031, door: 'guest' }] },
   { id: 'bump', x: [20.15, 20.678], z: [-18.831, -18.039], s0: 'pLobby', s1: 'pLobby' },
   { id: 'LP-lintel', x: [16.103, 20.15], z: [-18.831, -18.039], s0: 'pLobby', s1: 'pLobby', open: [{ t: 'arch', a: 16.103, b: 20.15 }] },
   { id: 'GB-lobby', x: [20.15, 21.03], z: [-9.635, -8.843], s0: 'pLobby', s1: 'pStair' },
-  { id: 'GB-guest', x: [21.03, 32.382], z: [-9.635, -8.843], s0: 'pGuest', s1: 'pStair' },
-  { id: 'GB-duct', x: [32.382, 34.581], z: [-9.635, -8.843], s0: 'pDuct', s1: 'pStair', open: [{ t: 'vent', a: 32.602, b: 34.185 }] },
+  { id: 'GB-guest-a', x: [21.03, STAIR_BATH.well.x0], z: [-9.635, -8.843], s0: 'pGuest', s1: 'pStair' },
+  { id: 'GB-guest-b', x: [STAIR_BATH.well.x0, 32.382], z: [-9.635, -8.843], s0: 'pGuest', s1: 'pToilet' },
+  { id: 'GB-duct', x: [32.382, 34.581], z: [-9.635, -8.843], s0: 'wardrobeIn', s1: 'pToilet' },
   { id: 'LS-lintel', x: [16.103, 20.15], z: [-9.635, -8.843], s0: 'pLobby', s1: 'pStair', open: [{ t: 'arch', a: 16.103, b: 20.15 }] },
 
   // Front (stair room) + portico ---------------------------------------------
-  { id: 'F-stair-a', x: [15.619, 25.298], z: [-0.792, 0.0], s0: 'pStair', s1: 'extTan', open: [{ t: 'swin', a: 19.798, b: 22.79 }] },
-  { id: 'F-stair-b', x: [25.298, 35.417], z: [-0.792, 0.0], s0: 'pStair', s1: 'ext' },
+  { id: 'F-stair-a', x: [15.619, 25.298], z: [-0.792, 0.0], s0: 'pToilet', s1: 'extTan', open: [{ t: 'swin', a: 19.798, b: 22.79 }] },
+  { id: 'F-stair-b', x: [25.298, 35.417], z: [-0.792, 0.0], s0: 'pToilet', s1: 'ext' },
+  // bathroom under the stair: its wall to the stair passage, up to the first-floor slab
+  // (under flight 2 it carries on with a sloping top, and under the landing a cross
+  //  wall closes it off from flight 1: both in structure.js)
+  { id: 'SB-wall', x: [STAIR_BATH.x0, 23.05], z: STAIR_BATH.wall, s0: 'pStair', s1: 'pToilet', open: [{ t: 'door', a: STAIR_BATH.door[0], b: STAIR_BATH.door[1], door: 'stairBath' }] },
   { id: 'P-right-a', x: [14.827, 15.619], z: [-18.831, -9.239], s0: 'pPortico', s1: 'pLobby', open: [{ t: 'main', a: -15.707, b: -11.615, door: 'main' }] },
-  { id: 'P-right-b', x: [14.827, 15.619], z: [-9.239, 0.0], s0: 'pPortico', s1: 'pStair' },
+  { id: 'P-right-b', x: [14.827, 15.619], z: [-9.239, STAIR_BATH.wall[0]], s0: 'pPortico', s1: 'pStair' },
+  { id: 'P-right-c', x: [14.827, 15.619], z: [STAIR_BATH.wall[0], 0.0], s0: 'pPortico', s1: 'pToilet' },
   { id: 'stub-a', x: [15.619, 16.103], z: [-18.831, -18.039], s0: 'pLobby', s1: 'pLobby' },
   { id: 'stub-b', x: [15.619, 16.103], z: [-9.635, -8.843], s0: 'pLobby', s1: 'pStair' },
   // living-room window onto the portico (portico is roofed, so no sunshade)
@@ -86,7 +94,7 @@ export const DOORS = {
   bed2:    { hinge: 'a', side: 1, style: 'wood' },
   guest:   { hinge: 'b', side: 1, style: 'wood' },
   toilet1: { hinge: 'a', side: 1, style: 'pvc' },
-  toilet2: { hinge: 'a', side: 0, style: 'pvc' },
+  stairBath: { hinge: 'a', side: 1, style: 'pvc' },
 };
 
 // Rooms: floor rectangles [x0, x1, z0, z1]. `rear:true` rooms run under the
@@ -106,19 +114,26 @@ export const ROOMS = [
   { id: 'bed2', name: 'Bedroom 2', size: '12′-0″ × 11′-0″', rects: [[22.526, 34.581, -37.969, -26.882]], floor: 'wood', level: 'gf',
     note: 'Queen bed with side tables, wardrobe, TV wall.' },
   { id: 'guest', name: 'Guest Room', size: '10′-6″ × 11′-0″', rects: [[21.03, 31.59, -20.282, -9.635]], floor: 'woodLight', level: 'gf',
-    note: 'Queen bed, wardrobe, attached toilet.' },
+    note: 'Queen bed, TV, an armchair and a built-in wardrobe in the old shaft space, beside the window.' },
   { id: 'kitchen', name: 'Kitchen', size: '12′-0″ × 8′-0″', rects: [[22.174, 34.581, -48.176, -38.321]], floor: 'tileKitchen', level: 'gf', rear: true,
-    note: 'Open to the dining hall, double height, with the rear glass wall above the counter. L-shaped granite counter, sink, hob and chimney.' },
-  { id: 'toilet1', name: 'Common Toilet', size: '7′-0″ × 5′-6″', rects: [[21.03, 28.07, -26.53, -21.074]], floor: 'tileBath', level: 'gf',
-    note: 'Door from the dining hall.' },
-  { id: 'toilet2', name: 'Attached Toilet', size: '6′-0″ × 5′-6″', rects: [[28.422, 34.581, -26.53, -21.074]], floor: 'tileBath', level: 'gf',
-    note: 'Attached to the guest room, ventilator to the duct.' },
+    note: 'Open to the dining hall, with a normal ceiling (the first-floor walk-in wardrobe is above it) and a solid rear wall. L-shaped granite counter, sink, hob and chimney.' },
+  { id: 'toilet2', name: 'Bathroom', size: '13′-6″ × 5′-6″', rects: [[21.03, 34.581, -26.53, -21.074]], floor: 'tileBath', level: 'gf',
+    note: 'The two old toilets made into one bathroom for the family, entered from the dining hall (no door from the guest room): a double vanity, WC, and a shower with a glass screen beside the ventilator to the pipe line shaft.' },
+  { id: 'stairBath', name: 'Common Bathroom', size: '19′-0″ × 4′-2″ + 3′-11″ × 3′-11″', floor: 'tileBath', level: 'gf',
+    rects: [
+      [STAIR_BATH.x0, STAIR_BATH.steps[0], STAIR_BATH.wall[1], STAIR_BATH.z1],
+      [STAIR_BATH.steps[0], STAIR_BATH.steps[1], STAIR_BATH.wall[1], STAIR_BATH.z1, 1.5],
+      [STAIR_BATH.steps[1], STAIR_BATH.steps[2], STAIR_BATH.wall[1], STAIR_BATH.z1, 1.0],
+      [STAIR_BATH.steps[2], STAIR_BATH.x1, STAIR_BATH.wall[1], STAIR_BATH.z1, 0.5],
+      [STAIR_BATH.well.x0 + 0.25, STAIR_BATH.x1, STAIR_BATH.well.z0, STAIR_BATH.wall[1], 0.5],
+    ],
+    note: 'Under the stair, off the passage from the lobby. Shower and wash basin at floor level under the tall front window; three steps lead down to a floor 1′-6″ lower, so there is 6′-9″ clear under the mid landing, where the WC is.' },
   { id: 'puja', name: 'Puja Room', size: '5′-0″ × 4′-0″', rects: [[0.792, 5.852, -48.836, -43.689]], floor: 'marble', level: 'gf', rear: true,
     note: 'Opens onto the back of the hall (the old garden).' },
-  { id: 'stair', name: 'Staircase', size: '19′-0″ × 8′-0″', rects: [[15.619, 34.581, -8.843, -0.792]], floor: 'graniteGrey', level: 'gf',
-    note: 'Dog-legged stair, 20 risers to the first floor.' },
-  { id: 'duct', name: 'Pipe Line Area', size: '2′-2″ × 10′-8″', rects: [[DUCT.x0, DUCT.x1, DUCT.z0, DUCT.z1]], floor: 'concrete', level: 'duct',
-    note: 'Service shaft for plumbing, open to the sky: it runs up through the first floor and the roof. The guest room window and the toilet and stair ventilators open onto it.' },
+  { id: 'stair', name: 'Staircase', size: '19′-0″ × 8′-0″', rects: [[15.619, STAIR_BATH.well.x0, -8.843, STAIR_BATH.wall[0]]], floor: 'graniteGrey', level: 'gf',
+    note: 'Dog-legged stair, 20 risers to the first floor. The space under the second flight and the landing is the common bathroom.' },
+  { id: 'duct', name: 'Pipe Line Area', size: '2′-7″ × 5′-5″', rects: [[DUCT.x0, DUCT.x1, DUCT.z0, DUCT.z1]], floor: 'concrete', level: 'duct',
+    note: 'Service shaft for plumbing, open to the sky: it runs up through the first floor and the roof. The guest room window and the bathroom ventilator open onto it; its front end is now the guest room wardrobe.' },
   { id: 'garden', name: 'Garden', size: '49′-9″ × 8′-9.1″', areaText: '435.6 sq ft (1 decimal)',
     rects: [[GARDEN.x0, GARDEN.x1, GARDEN.z0, GARDEN.z1]], floor: 'grass', level: 'garden',
     note: 'The strip of land beside the house on the north side, 1 decimal: it runs the full length of the house, 49′-9″ from the street to the back of the puja room, and is 8′-9.1″ wide. A lawn with stepping stones from its own gate on the street to a tulsi chaura by the puja room, flower beds along the boundary wall and the house, a bench, two small trees and garden lights.' },
